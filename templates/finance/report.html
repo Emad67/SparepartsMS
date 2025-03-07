@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Financial Report</h2>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h3>${{ "%.2f"|format(total_expenses) }}</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card {% if profit >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Net Profit/Loss</h5>
+                    <h3>${{ "%.2f"|format(profit) }}</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Quick Select</label>
+                    <select name="days" class="form-select">
+                        <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                        <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                        <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+                        <option value="365" {% if days == 365 %}selected{% endif %}>Last Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Apply</button>
+                    <a href="{{ url_for('finance.report') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Daily Revenue vs Expenses</h5>
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Category Distribution</h5>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Tables -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Daily Summary</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Revenue</th>
+                                    <th>Expenses</th>
+                                    <th>Net</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date, types in daily_totals|groupby(0) %}
+                                <tr>
+                                    <td>{{ date }}</td>
+                                    {% set revenue = 0 %}
+                                    {% set expenses = 0 %}
+                                    {% for _, type, amount in types %}
+                                        {% if type == 'revenue' %}
+                                            {% set revenue = amount %}
+                                        {% else %}
+                                            {% set expenses = amount %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <td>${{ "%.2f"|format(revenue) }}</td>
+                                    <td>${{ "%.2f"|format(expenses) }}</td>
+                                    <td>
+                                        <span class="{% if revenue - expenses >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ${{ "%.2f"|format(revenue - expenses) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No data available for this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Category Summary</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Revenue</th>
+                                    <th>Expenses</th>
+                                    <th>Net</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category, types in category_totals|groupby(0) %}
+                                <tr>
+                                    <td>{{ category or 'Uncategorized' }}</td>
+                                    {% set revenue = 0 %}
+                                    {% set expenses = 0 %}
+                                    {% for _, type, amount in types %}
+                                        {% if type == 'revenue' %}
+                                            {% set revenue = amount %}
+                                        {% else %}
+                                            {% set expenses = amount %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <td>${{ "%.2f"|format(revenue) }}</td>
+                                    <td>${{ "%.2f"|format(expenses) }}</td>
+                                    <td>
+                                        <span class="{% if revenue - expenses >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ${{ "%.2f"|format(revenue - expenses) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No data available for this period</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = JSON.parse('{{ chart_data|tojson|safe }}');
+
+    // Daily Revenue vs Expenses Chart
+    new Chart(document.getElementById('dailyChart'), {
+        type: 'line',
+        data: {
+            labels: chartData.dates,
+            datasets: [{
+                label: 'Revenue',
+                data: chartData.revenues,
+                borderColor: 'rgb(40, 167, 69)',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.1
+            }, {
+                label: 'Expenses',
+                data: chartData.expenses,
+                borderColor: 'rgb(220, 53, 69)',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Daily Revenue vs Expenses'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Distribution Chart
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+            labels: chartData.categories.map(c => c || 'Uncategorized'),
+            datasets: [{
+                label: 'Revenue',
+                data: chartData.categoryRevenues,
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                borderColor: 'rgb(40, 167, 69)',
+                borderWidth: 1
+            }, {
+                label: 'Expenses',
+                data: chartData.categoryExpenses,
+                backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                borderColor: 'rgb(220, 53, 69)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Revenue and Expenses by Category'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

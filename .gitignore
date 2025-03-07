@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+build_env/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+*.db
+*.sqlite3
+
+# Environment variables
+.env
+.venv
+.env.*
+
+# Sensitive files
+.license
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Project specific
+static/uploads/*
+!static/uploads/.gitkeep
+backups/
+installer_package/
+installer_output/
+*.spec
+*.exe
+
+# Logs
+*.log
+logs/
+log/
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Migrations (keep the migrations directory but ignore compiled files)
+migrations/__pycache__/
+migrations/versions/__pycache__/ 

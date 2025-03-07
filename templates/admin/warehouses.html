@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Warehouse Management</h2>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search warehouses...">
+        </div>
+        <a href="{{ url_for('admin.add_warehouse') }}" class="btn btn-primary">Add New Warehouse</a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Total Parts</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for warehouse in warehouses %}
+                <tr>
+                    <td>{{ warehouse.name }}</td>
+                    <td>{{ warehouse.location }}</td>
+                    <td>
+                        {% set total_parts = warehouse.stock_items|length %}
+                        {% set total_quantity = warehouse.stock_items|sum(attribute='quantity') %}
+                        {{ total_parts }} unique ({{ total_quantity }} total)
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="{{ url_for('admin.manage_warehouse_stock', warehouse_id=warehouse.id) }}" 
+                               class="btn btn-sm btn-info">
+                                <i class="bi bi-box"></i> Manage Stock
+                            </a>
+                            <a href="{{ url_for('admin.edit_warehouse', warehouse_id=warehouse.id) }}" 
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" 
+                                    onclick="confirmDelete('{{ warehouse.id }}', '{{ warehouse.name }}')">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete warehouse <span id="warehouseName"></span>?</p>
+                <p class="text-danger">This will also delete all stock records associated with this warehouse.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteForm" method="POST">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(warehouseId, warehouseName) {
+    document.getElementById('warehouseName').textContent = warehouseName;
+    document.getElementById('deleteForm').action = "{{ url_for('admin.delete_warehouse', warehouse_id=0) }}".replace('0', warehouseId);
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+$(document).ready(function() {
+    $('#searchInput').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $("table tbody tr").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+});
+</script>
+{% endblock %} 

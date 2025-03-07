@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Edit Supplier</h2>
+    
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Supplier Name *</label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           value="{{ supplier.name }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="contact_person" class="form-label">Contact Person</label>
+                    <input type="text" class="form-control" id="contact_person" name="contact_person"
+                           value="{{ supplier.contact_person }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           value="{{ supplier.email }}">
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone</label>
+                    <input type="tel" class="form-control" id="phone" name="phone"
+                           value="{{ supplier.phone }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="address" 
+                              rows="3">{{ supplier.address }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="payment_terms" class="form-label">Payment Terms</label>
+                    <textarea class="form-control" id="payment_terms" name="payment_terms" 
+                              rows="3">{{ supplier.payment_terms }}</textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Update Supplier</button>
+            <a href="{{ url_for('admin.suppliers') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

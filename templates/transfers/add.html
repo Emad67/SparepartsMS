@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">New Stock Transfer</h2>
+    
+    <form method="POST" id="transferForm">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="part_id" class="form-label">Part</label>
+                    <select class="form-select" name="part_id" id="part_id" required>
+                        <option value="">Select Part</option>
+                        {% for part in parts %}
+                        <option value="{{ part.id }}" data-stock='{{ stock_levels[part.id]|tojson }}'>
+                            {{ part.name }} ({{ part.part_number }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" name="quantity" id="quantity" min="1" required>
+                    <small id="stockWarning" class="text-danger"></small>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="from_location" class="form-label">From Warehouse</label>
+                    <select class="form-select" name="from_location" id="from_location" required>
+                        <option value="">Select Source Warehouse</option>
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small id="sourceStock" class="text-muted"></small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="to_location" class="form-label">To Warehouse</label>
+                    <select class="form-select" name="to_location" id="to_location" required>
+                        <option value="">Select Destination Warehouse</option>
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="submitBtn">Create Transfer</button>
+        <a href="{{ url_for('transfers.list_transfers') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    function updateStockInfo() {
+        var partId = $('#part_id').val();
+        var fromLocation = $('#from_location').val();
+        var quantity = $('#quantity').val();
+        
+        if (partId && fromLocation) {
+            var stockData = $('#part_id option:selected').data('stock');
+            var available = stockData[fromLocation] || 0;
+            
+            $('#sourceStock').text('Available: ' + available);
+            
+            if (quantity && quantity > available) {
+                $('#stockWarning').text('Requested quantity exceeds available stock');
+                $('#submitBtn').prop('disabled', true);
+            } else {
+                $('#stockWarning').text('');
+                $('#submitBtn').prop('disabled', false);
+            }
+        }
+    }
+    
+    $('#part_id, #from_location, #quantity').on('change', updateStockInfo);
+    
+    $('#to_location').on('change', function() {
+        var fromLocation = $('#from_location').val();
+        var toLocation = $(this).val();
+        
+        if (fromLocation === toLocation) {
+            alert('Source and destination warehouses must be different');
+            $(this).val('');
+        }
+    });
+    
+    $('#from_location').on('change', function() {
+        var fromLocation = $(this).val();
+        var toLocation = $('#to_location').val();
+        
+        if (fromLocation === toLocation) {
+            alert('Source and destination warehouses must be different');
+            $('#to_location').val('');
+        }
+        
+        updateStockInfo();
+    });
+    
+    $('#transferForm').on('submit', function(e) {
+        var fromLocation = $('#from_location').val();
+        var toLocation = $('#to_location').val();
+        
+        if (fromLocation === toLocation) {
+            e.preventDefault();
+            alert('Source and destination warehouses must be different');
+            return false;
+        }
+        
+        var quantity = $('#quantity').val();
+        var stockData = $('#part_id option:selected').data('stock');
+        var available = stockData[fromLocation] || 0;
+        
+        if (quantity > available) {
+            e.preventDefault();
+            alert('Requested quantity exceeds available stock');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

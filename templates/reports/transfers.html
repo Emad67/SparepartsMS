@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4">Transfer Reports</h1>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Date Range</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                        <span class="input-group-text">to</span>
+                        <input type="date" class="form-control" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">From Location</label>
+                    <select class="form-select" name="from_location">
+                        <option value="">All</option>
+                        {% for location in locations %}
+                        <option value="{{ location.id }}" {% if request.args.get('from_location')|int == location.id %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">To Location</label>
+                    <select class="form-select" name="to_location">
+                        <option value="">All</option>
+                        {% for location in locations %}
+                        <option value="{{ location.id }}" {% if request.args.get('to_location')|int == location.id %}selected{% endif %}>
+                            {{ location.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">All</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="in_transit" {% if request.args.get('status') == 'in_transit' %}selected{% endif %}>In Transit</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="cancelled" {% if request.args.get('status') == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('reports.transfers') }}" class="btn btn-secondary me-2">Reset</a>
+                    <button type="button" class="btn btn-success me-2" onclick="exportToCSV()">Export CSV</button>
+                    <button type="button" class="btn btn-danger" onclick="exportToPDF()">Export PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Transfers</h5>
+                    <h2 class="card-text">{{ summary.total_transfers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Completed Transfers</h5>
+                    <h2 class="card-text">{{ summary.completed_transfers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Transfers</h5>
+                    <h2 class="card-text">{{ summary.pending_transfers }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items Transferred</h5>
+                    <h2 class="card-text">{{ summary.total_items }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfers Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Transfer #</th>
+                            <th>Date</th>
+                            <th>From Location</th>
+                            <th>To Location</th>
+                            <th>Items</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transfer in transfers %}
+                        <tr>
+                            <td>{{ transfer.reference_number }}</td>
+                            <td>{{ transfer.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ transfer.from_location.name }}</td>
+                            <td>{{ transfer.to_location.name }}</td>
+                            <td>{{ transfer.items|length }}</td>
+                            <td>
+                                {% if transfer.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% elif transfer.status == 'in_transit' %}
+                                <span class="badge bg-info">In Transit</span>
+                                {% elif transfer.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transfer.created_by.username }}</td>
+                            <td>
+                                <a href="{{ url_for('transfers.view_transfer', transfer_id=transfer.id) }}" 
+                                   class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center">No transfers found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportToCSV() {
+    // Get current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    // Add export parameter
+    urlParams.append('export', 'csv');
+    // Redirect to same page with export parameter
+    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+}
+
+function exportToPDF() {
+    // Get current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    // Add export parameter
+    urlParams.append('export', 'pdf');
+    // Redirect to same page with export parameter
+    window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,31 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="SparePartsMS",
+    version="1.0.0",
+    packages=find_packages(),
+    include_package_data=True,
+    install_requires=[
+        'Flask==2.3.2',
+        'Flask-WTF==1.0.1',
+        'Flask-Login==0.6.2',
+        'Flask-Security==4.0.0',
+        'Flask-SQLAlchemy==3.0.3',
+        'Flask-Migrate==4.0.4',
+        'Flask-Mail==0.9.1',
+        'SQLAlchemy==2.0.15',
+        'alembic==1.11.1',
+        'WTForms==3.0.1',
+        'email-validator==2.0.0',
+        'werkzeug==2.3.6',
+        'bcrypt==4.0.1',
+        'passlib==1.7.4',
+        'reportlab==4.0.4',
+        'WeasyPrint==59.0',
+        'openpyxl==3.1.2',
+        'XlsxWriter==3.1.2',
+        'Pillow==9.5.0',
+        'python-dateutil==2.8.2',
+        'python-dotenv==1.0.0',
+    ],
+) 

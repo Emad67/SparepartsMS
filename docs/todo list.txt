@@ -1,0 +1,17 @@
+1. add cancel action in the purchase page ---Done
+2. add delete action in categories page   ---Done
+3. make the sales history range of date   ---Done
+4. loan management page credit purchases search parameters by supplier and due date ---Done
+5. credit purchases search parameters by supplier and due date ----Done
+6. report for transfers --- Done
+7. view all transactions is not working ---Done
+8. the quantity in the new stock transfer page is saying Requested quantity exceeds available stock ---Done
+9. messaging between users ---Done
+10. credit purchase should add purchased quantity to the parts Bin Card and loans should deduct from the Bin Card. ---Done
+11. cable ties, door nobs, electric plaster and others that don't have part number must have different category. 
+12. name of part will be Italian and description will be English name in the EPC.
+13. original and second level quality parts are to be differentiated by making slash after the part number /01 for original and /02 for second level.
+14. Provide clear pictured step by step documentation.
+15. sales and purchases transactions should be added automatically to the revenue and expenses financial reports as well as to the "View All transactions" page. i want them to be seen and be added to the financial reports and statements.--Done
+16. add new page to reverse or void transactions and add it to financial management page.---Done
+17. add user management to just enable users to change password. ---Done 

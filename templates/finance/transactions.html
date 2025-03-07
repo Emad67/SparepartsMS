@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Financial Transactions</h2>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h3>${{ "%.2f"|format(total_expenses) }}</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" name="type">
+                        <option value="">All</option>
+                        <option value="revenue" {% if request.args.get('type') == 'revenue' %}selected{% endif %}>Revenue</option>
+                        <option value="expense" {% if request.args.get('type') == 'expense' %}selected{% endif %}>Expense</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('finance.list_transactions') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>All Transactions</span>
+            <a href="{{ url_for('finance.add_transaction') }}" class="btn btn-primary">Add Transaction</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge {% if transaction.type == 'revenue' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ transaction.type|title }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.category }}</td>
+                            <td>${{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.reference_id }}</td>
+                            <td>{{ transaction.user.username }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No transactions found for the selected period</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    function filterTable() {
+        var value = $('#searchInput').val().toLowerCase();
+        var type = $('#typeFilter').val().toLowerCase();
+        var category = $('#categoryFilter').val().toLowerCase();
+        
+        $("table tbody tr").filter(function() {
+            var text = $(this).text().toLowerCase();
+            var matchesSearch = text.indexOf(value) > -1;
+            var matchesType = !type || $(this).find('td:eq(1)').text().trim().toLowerCase() === type;
+            var matchesCategory = !category || $(this).find('td:eq(2)').text().trim().toLowerCase() === category;
+            $(this).toggle(matchesSearch && matchesType && matchesCategory);
+        });
+    }
+    
+    $('#searchInput').on('keyup', filterTable);
+    $('#typeFilter, #categoryFilter').change(filterTable);
+});
+</script>
+{% endblock %} 

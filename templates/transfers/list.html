@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Stock Transfers</h2>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search transfers...">
+            <select class="form-select" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+        <a href="{{ url_for('transfers.add_transfer') }}" class="btn btn-primary">New Transfer</a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Reference #</th>
+                    <th>From Location</th>
+                    <th>To Location</th>
+                    <th>Items</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in transfers %}
+                <tr>
+                    <td>{{ transfer.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ transfer.reference_number }}</td>
+                    <td>{{ transfer.from_location.name }}</td>
+                    <td>{{ transfer.to_location.name }}</td>
+                    <td>
+                        {{ transfer.items|length }} item(s)
+                        <small class="d-block text-muted">
+                        {% for item in transfer.items[:2] %}
+                            {{ item.part.name }} ({{ item.quantity }}){% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                        {% if transfer.items|length > 2 %}...{% endif %}
+                        </small>
+                    </td>
+                    <td>
+                        <span class="badge {% if transfer.status == 'pending' %}bg-warning
+                                         {% elif transfer.status == 'completed' %}bg-success
+                                         {% else %}bg-danger{% endif %}">
+                            {{ transfer.status }}
+                        </span>
+                    </td>
+                    <td>{{ transfer.created_by.username }}</td>
+                    <td>
+                        {% if transfer.status == 'pending' %}
+                        <div class="btn-group">
+                            <form method="POST" action="{{ url_for('transfers.complete_transfer', id=transfer.id) }}" 
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-success">Complete</button>
+                            </form>
+                            <form method="POST" action="{{ url_for('transfers.cancel_transfer', id=transfer.id) }}" 
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-danger" 
+                                        onclick="return confirm('Are you sure you want to cancel this transfer?')">
+                                    Cancel
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    function filterTable() {
+        var searchValue = $('#searchInput').val().toLowerCase();
+        var statusValue = $('#statusFilter').val().toLowerCase();
+        
+        $("table tbody tr").filter(function() {
+            var text = $(this).text().toLowerCase();
+            var status = $(this).find('td:eq(5)').text().toLowerCase();
+            var matchesSearch = text.indexOf(searchValue) > -1;
+            var matchesStatus = !statusValue || status.indexOf(statusValue) > -1;
+            $(this).toggle(matchesSearch && matchesStatus);
+        });
+    }
+    
+    $('#searchInput').on('keyup', filterTable);
+    $('#statusFilter').on('change', filterTable);
+});
+</script>
+{% endblock %}
+{% endblock %} 

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Transfer Details</h2>
+        <a href="{{ url_for('transfers.list_transfers') }}" class="btn btn-secondary">Back to List</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">Transfer Information</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 150px">Reference Number:</th>
+                            <td>{{ transfer.reference_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge {% if transfer.status == 'pending' %}bg-warning
+                                                 {% elif transfer.status == 'completed' %}bg-success
+                                                 {% elif transfer.status == 'in_transit' %}bg-info
+                                                 {% else %}bg-danger{% endif %}">
+                                    {{ transfer.status|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created By:</th>
+                            <td>{{ transfer.created_by.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Created At:</th>
+                            <td>{{ transfer.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h5 class="card-title">Location Information</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 150px">From Location:</th>
+                            <td>{{ transfer.from_location.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>To Location:</th>
+                            <td>{{ transfer.to_location.name }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Transfer Items</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Part Number</th>
+                            <th>Part Name</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in transfer.items %}
+                        <tr>
+                            <td>{{ item.part.part_number }}</td>
+                            <td>{{ item.part.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if transfer.status == 'pending' %}
+    <div class="mt-4">
+        <div class="btn-group">
+            <form method="POST" action="{{ url_for('transfers.complete_transfer', id=transfer.id) }}" 
+                  style="display: inline;">
+                <button type="submit" class="btn btn-success me-2">Complete Transfer</button>
+            </form>
+            <form method="POST" action="{{ url_for('transfers.cancel_transfer', id=transfer.id) }}" 
+                  style="display: inline;">
+                <button type="submit" class="btn btn-danger" 
+                        onclick="return confirm('Are you sure you want to cancel this transfer?')">
+                    Cancel Transfer
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

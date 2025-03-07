@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Purchases Report</h2>
+    
+    <!-- Date Range and Status Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="received" {% if selected_status == 'received' %}selected{% endif %}>Received</option>
+                        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Update Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Cost</h5>
+                    <h3>${{ "%.2f"|format(total_cost) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Items</h5>
+                    <h3>{{ total_items }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Average Cost</h5>
+                    <h3>${{ "%.2f"|format(average_cost) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Purchases Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Part</th>
+                            <th>Supplier</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost</th>
+                            <th>Total Cost</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchases %}
+                        <tr>
+                            <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ purchase.part.name }}</td>
+                            <td>{{ purchase.supplier.name }}</td>
+                            <td>{{ purchase.quantity }}</td>
+                            <td>${{ "%.2f"|format(purchase.unit_cost) }}</td>
+                            <td>${{ "%.2f"|format(purchase.total_cost) }}</td>
+                            <td>
+                                <span class="badge {% if purchase.status == 'pending' %}bg-warning
+                                                 {% elif purchase.status == 'received' %}bg-success
+                                                 {% else %}bg-danger{% endif %}">
+                                    {{ purchase.status|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Buttons -->
+    <div class="mt-3">
+        <div class="btn-group">
+            <a href="{{ url_for('reports.export', report_type='purchases', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+               class="btn btn-success">Export CSV</a>
+            <a href="{{ url_for('reports.export', report_type='purchases', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+               class="btn btn-danger">Export PDF</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

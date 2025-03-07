@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Sales History</h2>
+    <div class="d-flex mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search sales...">
+            <input type="date" class="form-control" id="startDate" placeholder="Start Date">
+            <input type="date" class="form-control" id="endDate" placeholder="End Date">
+            <select class="form-select" id="userFilter">
+                <option value="">All Users</option>
+                {% for user in users %}
+                <option value="{{ user.username }}">{{ user.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Part</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                    <th>Sold By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ sale.part.name if sale.part else 'N/A' }}</td>
+                    <td>{{ sale.quantity }}</td>
+                    <td>${{ "%.2f"|format(sale.price) }}</td>
+                    <td>${{ "%.2f"|format(sale.price * sale.quantity) }}</td>
+                    <td>{{ sale.user.username if sale.user else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    function filterTable() {
+        var value = $('#searchInput').val().toLowerCase();
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+        var selectedUser = $('#userFilter').val();
+        
+        $("table tbody tr").filter(function() {
+            var text = $(this).text().toLowerCase();
+            var date = $(this).find('td:first').text().split(' ')[0]; // Get just the date part
+            var user = $(this).find('td:last').text().trim(); // Get the username
+            
+            var matchesSearch = text.indexOf(value) > -1;
+            var matchesDate = true;
+            var matchesUser = !selectedUser || user === selectedUser;
+            
+            if (startDate && endDate) {
+                matchesDate = date >= startDate && date <= endDate;
+            } else if (startDate) {
+                matchesDate = date >= startDate;
+            } else if (endDate) {
+                matchesDate = date <= endDate;
+            }
+            
+            $(this).toggle(matchesSearch && matchesDate && matchesUser);
+        });
+    }
+    
+    $('#searchInput').on('keyup', filterTable);
+    $('#startDate, #endDate').on('change', filterTable);
+    $('#userFilter').on('change', filterTable);
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,30 @@
+<invoke name="list_dir">
+<parameter name="explanation">Checking the views directory to see what view files exist</parameter>
+<parameter name="relative_workspace_path">views</parameter>
+</invoke>
+
+<invoke name="read_file">
+<parameter name="explanation">Checking app.py to verify blueprint registrations</parameter>
+<parameter name="relative_workspace_path">app.py</parameter>
+<parameter name="should_read_entire_file">false</parameter>
+<parameter name="start_line_one_indexed">1</parameter>
+<parameter name="end_line_one_indexed_inclusive">50</parameter>
+</invoke>
+
+<invoke name="codebase_search">
+<parameter name="explanation">Looking for the base template to check navigation items</parameter>
+<parameter name="query">templates/base.html navigation menu</parameter>
+</invoke>
+
+<invoke name="file_search">
+<parameter name="explanation">Looking for the base template file</parameter>
+<parameter name="query">base.html</parameter>
+</invoke>
+
+<invoke name="read_file">
+<parameter name="explanation">Checking admin views for warehouse management</parameter>
+<parameter name="relative_workspace_path">views/admin.py</parameter>
+<parameter name="should_read_entire_file">false</parameter>
+<parameter name="start_line_one_indexed">1</parameter>
+<parameter name="end_line_one_indexed_inclusive">50</parameter>
+</invoke> 

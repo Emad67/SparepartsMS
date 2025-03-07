@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Credit Purchases Report</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Summary</h5>
+            <p class="card-text">Total Pending Amount: ${{ "%.2f"|format(total_pending) }}</p>
+        </div>
+    </div>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Part</th>
+                <th>Quantity</th>
+                <th>Amount</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for credit in credits %}
+            <tr>
+                <td>{{ credit.purchase_date.strftime('%Y-%m-d') }}</td>
+                <td>{{ credit.customer.name }}</td>
+                <td>{{ credit.part.name }}</td>
+                <td>{{ credit.quantity }}</td>
+                <td>${{ "%.2f"|format(credit.price * credit.quantity) }}</td>
+                <td>{{ credit.due_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <span class="badge {% if credit.status == 'pending' %}bg-warning
+                                     {% elif credit.status == 'paid' %}bg-success
+                                     {% else %}bg-danger{% endif %}">
+                        {{ credit.status }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="btn-group">
+        <a href="{{ url_for('reports.export', report_type='credits', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='credits', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Low Stock Report</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Summary</h5>
+            <p class="card-text">Total Parts Low on Stock: {{ parts|length }}</p>
+        </div>
+    </div>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Part Number</th>
+                <th>Name</th>
+                <th>Current Stock</th>
+                <th>Location</th>
+                <th>Category</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for part in parts %}
+            <tr>
+                <td>{{ part.part_number }}</td>
+                <td>{{ part.name }}</td>
+                <td>
+                    <span class="badge bg-danger">{{ part.stock_level }}</span>
+                </td>
+                <td>{{ part.location }}</td>
+                <td>{{ part.category.name if part.category else 'N/A' }}</td>
+                <td>
+                    <a href="{{ url_for('parts.edit_part', part_id=part.id) }}" class="btn btn-sm btn-warning">Update Stock</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="btn-group">
+        <a href="{{ url_for('reports.export', report_type='low_stock', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='low_stock', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Messages</h2>
+        <a href="{{ url_for('messages.compose_message') }}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Compose Message
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-3" id="messagesTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="inbox-tab" data-bs-toggle="tab" data-bs-target="#inbox" 
+                    type="button" role="tab" aria-controls="inbox" aria-selected="true">
+                Inbox
+                {% set unread = inbox|selectattr('read', 'equalto', false)|list|length %}
+                {% if unread > 0 %}
+                <span class="badge bg-danger ms-2" id="inbox-unread-count">{{ unread }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" 
+                    type="button" role="tab" aria-controls="sent" aria-selected="false">
+                Sent
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="messagesTabContent">
+        <!-- Inbox Tab -->
+        <div class="tab-pane fade show active" id="inbox" role="tabpanel" aria-labelledby="inbox-tab">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>From</th>
+                            <th>Subject</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for message in inbox %}
+                        <tr class="{{ 'fw-bold' if not message.read }}" data-message-id="{{ message.id }}">
+                            <td>{{ message.sender.username }}</td>
+                            <td>
+                                <a href="#" class="text-decoration-none text-dark message-link" 
+                                   data-message-id="{{ message.id }}">
+                                    {{ message.subject or '(No subject)' }}
+                                </a>
+                            </td>
+                            <td>{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <form method="POST" 
+                                      action="{{ url_for('messages.delete_message', message_id=message.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete this message?')">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">No messages in inbox</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Message Modal -->
+        <div class="modal fade" id="messageModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Message Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="messageContent"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sent Tab -->
+        <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>To</th>
+                            <th>Subject</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for message in sent %}
+                        <tr>
+                            <td>{{ message.recipient.username }}</td>
+                            <td>
+                                <a href="{{ url_for('messages.view_message', message_id=message.id) }}"
+                                   class="text-decoration-none text-dark">
+                                    {{ message.subject or '(No subject)' }}
+                                </a>
+                            </td>
+                            <td>{{ message.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% if message.read %}
+                                <span class="badge bg-success">Read</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Unread</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" 
+                                      action="{{ url_for('messages.delete_message', message_id=message.id) }}"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete this message?')">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No sent messages</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Handle message clicks
+    $('.message-link').on('click', function(e) {
+        e.preventDefault();
+        const messageId = $(this).data('message-id');
+        const row = $(this).closest('tr');
+        
+        // Load message content via AJAX
+        $.ajax({
+            url: '/messages/' + messageId,
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                // Remove bold styling from row
+                row.removeClass('fw-bold');
+                
+                // Update unread count in navbar and inbox tab
+                if (response.unread_count > 0) {
+                    $('#unreadCount').text(response.unread_count).show();
+                    $('#inbox-unread-count').text(response.unread_count);
+                } else {
+                    $('#unreadCount').hide();
+                    $('#inbox-unread-count').remove();
+                }
+                
+                // Redirect to message view page
+                window.location.href = '/messages/' + messageId;
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

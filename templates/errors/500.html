@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <h1>Internal Server Error</h1>
+    <p>An unexpected error has occurred. Please try again later.</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Return to Dashboard</a>
+</div>
+{% endblock %} 

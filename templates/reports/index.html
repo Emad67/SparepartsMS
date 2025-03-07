@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Reports Dashboard</h2>
+    
+    <div class="row">
+        <!-- Sales Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Sales Report</h5>
+                    <form action="{{ url_for('reports.sales') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='sales', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='sales', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Purchases Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Purchases Report</h5>
+                    <form action="{{ url_for('reports.purchases') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='purchases', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='purchases', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Low Stock Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock Alert Report</h5>
+                    <p>View all parts that are running low on stock.</p>
+                    <a href="{{ url_for('reports.low_stock') }}" class="btn btn-warning">View Report</a>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='low_stock', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='low_stock', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Credit Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Credit Purchases Report</h5>
+                    <form action="{{ url_for('reports.credits') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='credits', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='credits', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loans Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active Loans Report</h5>
+                    <form action="{{ url_for('reports.loans') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='loans', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='loans', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Transfer Report</h5>
+                    <form action="{{ url_for('reports.transfers') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.transfers', export='excel') }}" class="btn btn-success">Export Excel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

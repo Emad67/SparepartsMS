@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">New Purchase Order</h2>
+    
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="part" class="form-label">Part</label>
+                    <select class="form-select" name="part_id" required>
+                        <option value="">Select Part</option>
+                        {% for part in parts %}
+                        <option value="{{ part.id }}">{{ part.name }} ({{ part.part_number }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="supplier" class="form-label">Supplier</label>
+                    <select class="form-select" name="supplier_id" required>
+                        <option value="">Select Supplier</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" name="quantity" min="1" required>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="unit_cost" class="form-label">Unit Cost</label>
+                    <input type="number" class="form-control" name="unit_cost" step="0.01" min="0" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="invoice_number" class="form-label">Invoice Number</label>
+                    <input type="text" class="form-control" name="invoice_number" required>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+        <a href="{{ url_for('purchases.list_purchases') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('input[name="quantity"], input[name="unit_cost"]').on('input', function() {
+        var quantity = $('input[name="quantity"]').val() || 0;
+        var unitCost = $('input[name="unit_cost"]').val() || 0;
+        var totalCost = quantity * unitCost;
+        $('#total_cost').text(totalCost.toFixed(2));
+    });
+});
+</script>
+{% endblock %} 

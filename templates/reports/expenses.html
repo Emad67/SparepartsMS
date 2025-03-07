@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Expenses Report</h2>
+    
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary d-block">Update Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Card -->
+    <div class="row mb-4">
+        <div class="col-md-6 mx-auto">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h2 class="card-text">${{ "%.2f"|format(total_expenses) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expenses Chart -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Daily Expenses</h5>
+            <canvas id="expensesChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Expenses Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ expense.category }}</td>
+                            <td>${{ "%.2f"|format(expense.amount) }}</td>
+                            <td>{{ expense.description }}</td>
+                            <td>{{ expense.reference_id }}</td>
+                            <td>{{ expense.user.username }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Buttons -->
+    <div class="mt-3">
+        <div class="btn-group">
+            <a href="{{ url_for('reports.export', report_type='expenses', format='csv') }}" class="btn btn-success">Export CSV</a>
+            <a href="{{ url_for('reports.export', report_type='expenses', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = JSON.parse('{{ {"dates": dates, "amounts": amounts}|tojson|safe }}');
+    
+    new Chart(document.getElementById('expensesChart'), {
+        type: 'line',
+        data: {
+            labels: chartData.dates,
+            datasets: [{
+                label: 'Expenses',
+                data: chartData.amounts,
+                borderColor: 'rgb(255, 99, 132)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '$' + context.raw.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

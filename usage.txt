@@ -1,0 +1,53 @@
+To create a super user (admin user) in the terminal, you can use the Flask shell to interact with your application. Here are the steps to create a super user through the Flask shell:
+
+Open your terminal and navigate to the directory containing your Flask application.
+
+Activate your virtual environment if you haven't already:
+
+bash
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+Run the Flask shell:
+
+bash
+flask shell
+Within the Flask shell, run the following commands to create a super user:
+
+Python
+from app import create_app
+from models import db, User, Role
+import uuid
+
+app = create_app()
+with app.app_context():
+    # Create roles if they don't exist
+    admin_role = Role.query.filter_by(name='admin').first()
+    if not admin_role:
+        admin_role = Role(name='admin')
+        db.session.add(admin_role)
+        db.session.commit()
+
+    # Create a super user
+    super_user = User(email='root@example.com', password='Emadude@123', fs_uniquifier=uuid.uuid4().hex)
+    super_user.set_password('Emadude@123')
+    db.session.add(super_user)
+    db.session.commit()
+
+    # Assign the admin role to the super user
+    super_user.roles.append(admin_role)
+    db.session.commit()
+    print(f"Super user created with email: {super_user.email}")
+Replace superuser@example.com and password with your desired super user email and password.
+
+Exit the Flask shell by typing exit().
+By following these steps, you will have created a super user with admin privileges that you can use to log in to your application.
+
+
+Within the Flask shell, run the following commands to query and display the users:
+from app import create_app
+from models import db, User
+
+app = create_app()
+with app.app_context():
+    users = User.query.all()
+    for user in users:
+        print(f"User ID: {user.id}, Email: {user.email}, Roles: {[role.name for role in user.roles]}")

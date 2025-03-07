@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Active Loans Report</h2>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Part</th>
+                <th>Quantity</th>
+                <th>Loan Date</th>
+                <th>Due Date</th>
+                <th>Days Remaining</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans %}
+            {% set days_remaining = (loan.due_date - now).days %}
+            <tr class="{% if days_remaining < 0 %}table-danger
+                       {% elif days_remaining < 3 %}table-warning{% endif %}">
+                <td>{{ loan.customer.name }}</td>
+                <td>{{ loan.part.name }}</td>
+                <td>{{ loan.quantity }}</td>
+                <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ days_remaining }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="btn-group">
+        <a href="{{ url_for('reports.export', report_type='loans', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='loans', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+</div>
+{% endblock %} 

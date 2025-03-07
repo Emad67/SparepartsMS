@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Record Financial Transaction</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Transaction Type *</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="revenue">Revenue</option>
+                                <option value="expense">Expense</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category *</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">Select Category</option>
+                                <optgroup label="Revenue Categories">
+                                    <option value="Sales">Sales</option>
+                                    <option value="Services">Services</option>
+                                    <option value="Other Revenue">Other Revenue</option>
+                                </optgroup>
+                                <optgroup label="Expense Categories">
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Rent">Rent</option>
+                                    <option value="Salaries">Salaries</option>
+                                    <option value="Supplies">Supplies</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Other Expenses">Other Expenses</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="amount" name="amount" 
+                                       step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reference_id" class="form-label">Reference ID</label>
+                            <input type="text" class="form-control" id="reference_id" name="reference_id" 
+                                   placeholder="e.g., Invoice #, Receipt #">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description *</label>
+                    <textarea class="form-control" id="description" name="description" 
+                              rows="3" required></textarea>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Record Transaction</button>
+                    <a href="{{ url_for('finance.index') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.getElementById('type');
+    const categorySelect = document.getElementById('category');
+    const revenueCategories = categorySelect.querySelector('optgroup[label="Revenue Categories"]');
+    const expenseCategories = categorySelect.querySelector('optgroup[label="Expense Categories"]');
+    
+    typeSelect.addEventListener('change', function() {
+        const type = this.value;
+        
+        // Hide all options first
+        Array.from(categorySelect.options).forEach(option => {
+            option.style.display = 'none';
+        });
+        
+        // Show relevant categories based on type
+        if (type === 'revenue') {
+            Array.from(revenueCategories.children).forEach(option => {
+                option.style.display = '';
+            });
+            categorySelect.value = '';
+        } else {
+            Array.from(expenseCategories.children).forEach(option => {
+                option.style.display = '';
+            });
+            categorySelect.value = '';
+        }
+    });
+    
+    // Trigger change event on page load
+    typeSelect.dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}
+
+{% endblock %} 

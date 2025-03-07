@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Compose Message</h2>
+        <a href="{{ url_for('messages.list_messages') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Messages
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="recipient_id" class="form-label">To *</label>
+                    <select class="form-select" id="recipient_id" name="recipient_id" required>
+                        <option value="">Select Recipient</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="subject" class="form-label">Subject</label>
+                    <input type="text" class="form-control" id="subject" name="subject" 
+                           placeholder="Enter subject (optional)">
+                </div>
+
+                <div class="mb-3">
+                    <label for="content" class="form-label">Message *</label>
+                    <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

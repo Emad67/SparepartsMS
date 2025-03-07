@@ -1,0 +1,95 @@
+Here’s a list of typical spare part categories that you can use in your spare parts management system:
+
+1️⃣ Engine Components
+Pistons & Rings
+Cylinder Heads
+Camshafts
+Crankshafts
+Valves & Lifters
+Gaskets & Seals
+Timing Belts & Chains
+2️⃣ Electrical & Electronic Parts
+Batteries
+Alternators
+Starters
+Ignition Coils
+Spark Plugs
+Sensors (Oxygen, ABS, Temperature, etc.)
+Fuses & Relays
+Wiring Harnesses
+3️⃣ Suspension & Steering
+Shock Absorbers & Struts
+Control Arms
+Ball Joints
+Tie Rod Ends
+Bushings
+Steering Racks & Pumps
+4️⃣ Braking System
+Brake Pads
+Brake Discs (Rotors)
+Brake Drums
+Brake Shoes
+Brake Calipers
+Brake Lines & Hoses
+ABS Modules
+5️⃣ Transmission & Drivetrain
+Clutches & Pressure Plates
+Gearboxes & Transmissions
+Driveshafts
+Differentials
+Axles
+Flywheels
+6️⃣ Cooling System
+Radiators
+Water Pumps
+Thermostats
+Cooling Fans
+Hoses & Clamps
+Intercoolers
+7️⃣ Fuel System
+Fuel Pumps
+Fuel Injectors
+Carburetors
+Fuel Filters
+Fuel Tanks
+8️⃣ Exhaust & Emission System
+Mufflers & Silencers
+Catalytic Converters
+Exhaust Manifolds
+Oxygen Sensors
+Exhaust Pipes
+9️⃣ Air Conditioning & Heating
+AC Compressors
+Condensers
+Evaporators
+Cabin Air Filters
+Blower Motors
+🔟 Body & Exterior Parts
+Bumpers
+Fenders
+Grilles
+Doors
+Mirrors
+Headlights & Taillights
+Windshields & Windows
+1️⃣1️⃣ Interior & Cabin Parts
+Dashboard Components
+Seats & Seat Belts
+Steering Wheels
+Door Panels
+Instrument Clusters
+1️⃣2️⃣ Filters & Maintenance Items
+Oil Filters
+Air Filters
+Cabin Air Filters
+Fuel Filters
+1️⃣3️⃣ Fasteners & Small Parts
+Bolts, Nuts, & Washers
+Clips & Retainers
+Gaskets & Seals
+1️⃣4️⃣ Lubricants, Oils & Fluids
+Engine Oil
+Transmission Fluid
+Brake Fluid
+Coolant
+Grease

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Void/Reverse Transactions</h2>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" name="type">
+                        <option value="">All Types</option>
+                        <option value="revenue" {% if request.args.get('type') == 'revenue' %}selected{% endif %}>Revenue</option>
+                        <option value="expense" {% if request.args.get('type') == 'expense' %}selected{% endif %}>Expense</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <span class="badge {% if transaction.type == 'revenue' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ transaction.type|title }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.category }}</td>
+                            <td>${{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.reference_id }}</td>
+                            <td>
+                                <span class="badge {% if transaction.voided %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ 'Voided' if transaction.voided else 'Active' }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if not transaction.voided %}
+                                <button class="btn btn-sm btn-danger" 
+                                        onclick="return showVoidModal('{{ transaction.id }}', '{{ transaction.type }}', '{{ transaction.amount }}')">
+                                    Void
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Void Modal -->
+<div class="modal fade" id="voidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Void Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to void this transaction?</p>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This action will:
+                    <ul class="mb-0">
+                        <li>Mark the original transaction as voided</li>
+                        <li>Create a reversing entry for the amount</li>
+                        <li>Update financial reports accordingly</li>
+                    </ul>
+                </div>
+                <form id="voidForm">
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Voiding *</label>
+                        <textarea class="form-control" id="reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="voidTransaction()">Confirm Void</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+let currentTransactionId = null;
+let currentTransactionType = null;
+let currentTransactionAmount = null;
+
+function showVoidModal(transactionId, type, amount) {
+    currentTransactionId = transactionId;
+    currentTransactionType = type;
+    currentTransactionAmount = amount;
+    document.getElementById('reason').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('voidModal'));
+    modal.show();
+}
+
+function voidTransaction() {
+    const reason = document.getElementById('reason').value.trim();
+    
+    if (!reason) {
+        alert('Please provide a reason for voiding the transaction');
+        return;
+    }
+    
+    const requestBody = {
+        reason: reason
+    };
+    
+    fetch(`/finance/void/${currentTransactionId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'An error occurred while voiding the transaction');
+        }
+    })
+    .catch(error => {
+        alert('An error occurred while voiding the transaction');
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}
+{% endblock %} 

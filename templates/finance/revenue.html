@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Revenue Report</h2>
+        <div class="btn-group">
+            <a href="{{ url_for('finance.export', report_type='revenue', format='csv') }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Export CSV
+            </a>
+            <a href="{{ url_for('finance.export', report_type='revenue', format='pdf') }}" class="btn btn-danger">
+                <i class="bi bi-file-earmark-pdf"></i> Export PDF
+            </a>
+        </div>
+    </div>
+    
+    <!-- Summary Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Total Revenue</h5>
+            <h3 class="text-success">${{ "%.2f"|format(total_revenue) }}</h3>
+            <p class="card-text">For selected period</p>
+        </div>
+    </div>
+    
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Update Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Revenue Chart -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Daily Revenue</h5>
+            <div style="height: 300px;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Revenue Table -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Revenue Details</h5>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for revenue in revenues %}
+                        <tr>
+                            <td>{{ revenue.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ revenue.category or 'N/A' }}</td>
+                            <td>${{ "%.2f"|format(revenue.amount) }}</td>
+                            <td>{{ revenue.description or 'N/A' }}</td>
+                            <td>{{ revenue.reference_id or 'N/A' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No revenue data available for this period</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Buttons -->
+    <div class="mt-3">
+        <div class="btn-group">
+            <a href="{{ url_for('finance.export', report_type='revenue', format='csv') }}" class="btn btn-success">Export CSV</a>
+            <a href="{{ url_for('finance.export', report_type='revenue', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = JSON.parse('{{ {"dates": dates, "amounts": amounts}|tojson|safe }}');
+    
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'line',
+        data: {
+            labels: chartData.dates,
+            datasets: [{
+                label: 'Revenue',
+                data: chartData.amounts,
+                borderColor: 'rgb(40, 167, 69)',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

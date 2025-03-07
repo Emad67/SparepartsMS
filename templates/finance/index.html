@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Financial Management</h2>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Revenue</h5>
+                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                    <p class="card-text">Last 30 days</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Expenses</h5>
+                    <h3>${{ "%.2f"|format(total_expenses) }}</h3>
+                    <p class="card-text">Last 30 days</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Net Profit</h5>
+                    <h3>${{ "%.2f"|format(total_revenue - total_expenses) }}</h3>
+                    <p class="card-text">Last 30 days</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('finance.add_transaction') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-plus-circle"></i> Add Transaction
+                        </a>
+                        <a href="{{ url_for('finance.list_transactions') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-list"></i> View All Transactions
+                        </a>
+                        <a href="{{ url_for('finance.void_transactions') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-x-circle"></i> Void/Reverse Transactions
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Reports</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{{ url_for('finance.revenue') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-graph-up"></i> Revenue Report
+                        </a>
+                        <a href="{{ url_for('finance.expenses') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-graph-down"></i> Expenses Report
+                        </a>
+                        <a href="{{ url_for('finance.profit') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-pie-chart"></i> Profit & Loss Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Reports -->
+    <div class="row mb-4">
+        <!-- Revenue Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue Report</h5>
+                    <form action="{{ url_for('finance.revenue') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('finance.export', report_type='revenue', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('finance.export', report_type='revenue', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expenses Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Expenses Report</h5>
+                    <form action="{{ url_for('finance.expenses') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('finance.export', report_type='expenses', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('finance.export', report_type='expenses', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profit Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Profit Report</h5>
+                    <form action="{{ url_for('finance.profit') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('finance.export', report_type='profit', format='csv') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('finance.export', report_type='profit', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="card">
+        <div class="card-header">
+            Recent Transactions
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                        <tr>
+                            <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <span class="badge {% if transaction.type == 'revenue' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ transaction.type|title }}
+                                </span>
+                            </td>
+                            <td>{{ transaction.category }}</td>
+                            <td>${{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>{{ transaction.description }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

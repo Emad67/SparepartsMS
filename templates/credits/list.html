@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Credit Purchases</h2>
+    
+    <!-- Filter Section -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="supplier_id" class="form-label">Supplier</label>
+                    <select class="form-select" id="supplier_id" name="supplier_id">
+                        <option value="">All Suppliers</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}" {% if selected_supplier_id == supplier.id %}selected{% endif %}>
+                            {{ supplier.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="due_date_start" class="form-label">Due Date From</label>
+                    <input type="date" class="form-control" id="due_date_start" name="due_date_start"
+                           value="{{ due_date_start if due_date_start }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="due_date_end" class="form-label">Due Date To</label>
+                    <input type="date" class="form-control" id="due_date_end" name="due_date_end"
+                           value="{{ due_date_end if due_date_end }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('credits.list_credits') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between mb-3">
+        <h3>All Credit Purchases</h3>
+        <a href="{{ url_for('credits.add_credit') }}" class="btn btn-primary">New Credit Purchase</a>
+    </div>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Supplier</th>
+                <th>Part</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Purchase Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for credit in credits %}
+            <tr>
+                <td>{{ credit.supplier.name if credit.supplier else 'N/A' }}</td>
+                <td>{{ credit.part.name if credit.part else 'N/A' }}</td>
+                <td>{{ credit.quantity }}</td>
+                <td>${{ "%.2f"|format(credit.price) }}</td>
+                <td>{{ credit.purchase_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ credit.due_date.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <span class="badge {% if credit.status == 'pending' %}bg-warning
+                                     {% elif credit.status == 'paid' %}bg-success
+                                     {% else %}bg-danger{% endif %}">
+                        {{ credit.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if credit.status == 'pending' %}
+                    <form method="POST" action="{{ url_for('credits.mark_paid', id=credit.id) }}" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-success">Mark Paid</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

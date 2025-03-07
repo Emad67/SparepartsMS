@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Create New Loan</h2>
+    
+    <form method="POST">
+        <div class="mb-3">
+            <label for="customer" class="form-label">Customer</label>
+            <select class="form-select" name="customer_id" required>
+                <option value="">Select Customer</option>
+                {% for customer in customers %}
+                <option value="{{ customer.id }}">{{ customer.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="part" class="form-label">Part</label>
+            <select class="form-select" name="part_id" id="part_id" required>
+                <option value="">Search Part by Number or Name</option>
+                {% for part in parts %}
+                <option value="{{ part.id }}" data-stock='{{ part.warehouse_stocks|map(attribute="quantity")|sum }}' data-part-number="{{ part.part_number }}">
+                    {{ part.part_number }} - {{ part.name }} (Total Available: {{ part.warehouse_stocks|map(attribute="quantity")|sum }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="quantity" class="form-label">Quantity</label>
+            <input type="number" class="form-control" name="quantity" min="1" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="days" class="form-label">Loan Duration (days)</label>
+            <input type="number" class="form-control" name="days" value="30" min="1" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Loan</button>
+        <a href="{{ url_for('loans.list_loans') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+{% block scripts %}
+<!-- Add Select2 CSS and JS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2 for part selection
+    $('#part_id').select2({
+        placeholder: 'Search Part by Number or Name',
+        width: '100%',
+        matcher: function(params, data) {
+            // If there are no search terms, return all of the data
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+
+            // Search in both part number and name
+            const partData = $(data.element);
+            const partNumber = partData.data('part-number').toLowerCase();
+            const partName = data.text.toLowerCase();
+            const searchTerm = params.term.toLowerCase();
+
+            if (partNumber.indexOf(searchTerm) > -1 || partName.indexOf(searchTerm) > -1) {
+                return data;
+            }
+
+            return null;
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

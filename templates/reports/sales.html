@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Sales Report</h2>
+    
+    <!-- Date Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-auto">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary d-block">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sales Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales</h5>
+                    <h2>${{ "%.2f"|format(total_sales) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items Sold</h5>
+                    <h2>{{ total_items }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Average Sale</h5>
+                    <h2>${{ "%.2f"|format(average_sale) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sales Table -->
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Part</th>
+                        <th>Quantity</th>
+                        <th>Unit Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr>
+                        <td>{{ sale.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ sale.part.name }}</td>
+                        <td>{{ sale.quantity }}</td>
+                        <td>${{ "%.2f"|format(sale.price) }}</td>
+                        <td>${{ "%.2f"|format(sale.price * sale.quantity) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add this in the appropriate location -->
+    <div class="btn-group">
+        <a href="{{ url_for('reports.export', report_type='sales', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+</div>
+{% endblock %} 

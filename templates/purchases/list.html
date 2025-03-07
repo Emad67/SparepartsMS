@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Purchase Orders</h2>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search purchases...">
+            <select class="form-select" id="statusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="received">Received</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+        <a href="{{ url_for('purchases.add_purchase') }}" class="btn btn-primary">New Purchase Order</a>
+    </div>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Invoice #</th>
+                <th>Part</th>
+                <th>Supplier</th>
+                <th>Quantity</th>
+                <th>Unit Cost</th>
+                <th>Total Cost</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for purchase in purchases %}
+            <tr>
+                <td>{{ purchase.purchase_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ purchase.invoice_number }}</td>
+                <td>{{ purchase.part.name }}</td>
+                <td>{{ purchase.supplier.name }}</td>
+                <td>{{ purchase.quantity }}</td>
+                <td>${{ "%.2f"|format(purchase.unit_cost) }}</td>
+                <td>${{ "%.2f"|format(purchase.total_cost) }}</td>
+                <td>
+                    <span class="badge {% if purchase.status == 'pending' %}bg-warning
+                                     {% elif purchase.status == 'received' %}bg-success
+                                     {% else %}bg-danger{% endif %}">
+                        {{ purchase.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if purchase.status == 'pending' %}
+                    <div class="btn-group">
+                        <form method="POST" action="{{ url_for('purchases.receive_purchase', id=purchase.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">Mark Received</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('purchases.cancel_purchase', id=purchase.id) }}" style="display: inline;" class="ms-1">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to cancel this purchase order?')">Cancel Order</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#searchInput').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        var status = $('#statusFilter').val().toLowerCase();
+        
+        $("table tbody tr").filter(function() {
+            var text = $(this).text().toLowerCase();
+            var matchesSearch = text.indexOf(value) > -1;
+            var matchesStatus = !status || $(this).find('td:eq(7)').text().trim().toLowerCase() === status;
+            $(this).toggle(matchesSearch && matchesStatus);
+        });
+    });
+    
+    $('#statusFilter').change(function() {
+        $('#searchInput').trigger('keyup');
+    });
+});
+</script>
+{% endblock %} 

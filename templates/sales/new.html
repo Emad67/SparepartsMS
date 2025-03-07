@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">New Sale</h2>
+    
+    <form method="POST">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="part_search" class="form-label">Search Part</label>
+                    <input type="text" class="form-control" id="part_search" placeholder="Search by part number or name">
+                    <input type="hidden" id="part_id" name="part_id" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                    <small class="text-muted">Available stock: <span id="available_stock">0</span></small>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price per Unit</label>
+                    <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="customer" class="form-label">Customer (Optional)</label>
+                    <select class="form-select" id="customer_id" name="customer_id">
+                        <option value="">Select Customer</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Sale Summary</h5>
+                        <p>Part: <span id="selected_part">None selected</span></p>
+                        <p>Quantity: <span id="summary_quantity">0</span></p>
+                        <p>Unit Price: $<span id="summary_price">0.00</span></p>
+                        <h4>Total: $<span id="total_amount">0.00</span></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Complete Sale</button>
+        <a href="{{ url_for('sales.list_sales') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#part_search').autocomplete({
+        source: function(request, response) {
+            $.getJSON("{{ url_for('sales.search_parts') }}", {
+                q: request.term
+            }, function(data) {
+                response(data.map(function(item) {
+                    return {
+                        label: item.part_number + ' - ' + item.name,
+                        value: item.part_number,
+                        item: item
+                    }
+                }));
+            });
+        },
+        minLength: 2,
+        select: function(event, ui) {
+            $('#part_id').val(ui.item.item.id);
+            $('#available_stock').text(ui.item.item.stock_level);
+            $('#price').val(ui.item.item.price);
+            $('#selected_part').text(ui.item.label);
+            updateSummary();
+        }
+    });
+    
+    $('#quantity, #price').on('input', updateSummary);
+    
+    function updateSummary() {
+        var quantity = $('#quantity').val() || 0;
+        var price = $('#price').val() || 0;
+        $('#summary_quantity').text(quantity);
+        $('#summary_price').text(price);
+        $('#total_amount').text((quantity * price).toFixed(2));
+    }
+});
+</script>
+{% endblock %} 
