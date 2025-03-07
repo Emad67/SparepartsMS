@@ -17,6 +17,7 @@ from views.purchases import purchases as purchases_blueprint
 from views.finance import finance as finance_blueprint
 from views.messages import messages
 from views.pos import pos as pos_blueprint
+from views.profile import profile as profile_blueprint
 import os
 from flask.cli import with_appcontext
 import click
@@ -117,6 +118,7 @@ def create_app():
     app.register_blueprint(finance_blueprint)
     app.register_blueprint(messages)
     app.register_blueprint(pos_blueprint)
+    app.register_blueprint(profile_blueprint)
 
     # Add template context processor
     @app.context_processor
