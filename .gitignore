@@ -21,6 +21,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+insert_sample_data.py
+license_generator.py
+populate_dummy_data.py
+
 
 # Flask
 instance/

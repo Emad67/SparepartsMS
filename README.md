@@ -123,6 +123,7 @@ cd spareparts
 # On Windows:
 .\spareparts\Scripts\activate
 # On Unix or MacOS:
+python -m venv spareparts
 source spareparts/bin/activate
 ```
 
@@ -157,8 +158,8 @@ python wsgi.py
 
 1. Access the application at `http://localhost:5000`
 2. Log in with default admin credentials:
-   - Username: admin
-   - Password: admin
+   - email: admin@example.com
+   - Password: admin123
 3. Change the default password immediately
 4. Set up:
    - Categories
