@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Add New Part</h2>
+    
+    <form method="POST" enctype="multipart/form-data" id="addPartForm">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="part_number" class="form-label">Part Number *</label>
+                    <input type="text" class="form-control" id="part_number" name="part_number" required>
+                    <div class="invalid-feedback">This part number already exists</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="warehouse" class="form-label">Warehouse *</label>
+                    <select class="form-select" id="warehouse" name="warehouse_id" required>
+                        <option value="">Select Warehouse</option>
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}">{{ warehouse.name }} ({{ warehouse.location }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="initial_stock" class="form-label">Initial Stock Quantity</label>
+                    <input type="number" class="form-control" id="initial_stock" name="initial_stock" min="0" value="0">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location in Warehouse</label>
+                    <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Shelf A-12">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="model" class="form-label">Model</label>
+                    <input type="text" class="form-control" id="model" name="model">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="make" class="form-label">Make</label>
+                    <input type="text" class="form-control" id="make" name="make">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="color" class="form-label">Color</label>
+                    <input type="text" class="form-control" id="color" name="color" placeholder="e.g. Red, Blue, Black">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="min_stock" class="form-label">Minimum Stock Level</label>
+                    <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="0">
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="category_id" class="form-label">Category</label>
+                    <select class="form-select" id="category_id" name="category_id">
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="supplier_id" class="form-label">Supplier</label>
+                    <select class="form-select" id="supplier_id" name="supplier_id">
+                        <option value="">Select Supplier</option>
+                        {% for supplier in suppliers %}
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="unit" class="form-label">Unit *</label>
+                    <select class="form-select" id="unit" name="unit" required>
+                        <option value="">Select Unit</option>
+                        <option value="piece">Piece</option>
+                        <option value="set">Set</option>
+                        <option value="box">Box</option>
+                    </select>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="min_price" class="form-label">Minimum Price</label>
+                            <input type="number" class="form-control" id="min_price" name="min_price" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="max_price" class="form-label">Maximum Price</label>
+                            <input type="number" class="form-control" id="max_price" name="max_price" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="cost_price" class="form-label">Cost Price</label>
+                            <input type="number" class="form-control" id="cost_price" name="cost_price" step="0.01" min="0" readonly>
+                            <small class="form-text text-muted">Cost price will be automatically calculated based on purchases</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="image" class="form-label">Image</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="weight" class="form-label">Weight</label>
+                    <input type="number" class="form-control" id="weight" name="weight" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="height" class="form-label">Height</label>
+                    <input type="number" class="form-control" id="height" name="height" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="length" class="form-label">Length</label>
+                    <input type="number" class="form-control" id="length" name="length" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="mb-3">
+                    <label for="width" class="form-label">Width</label>
+                    <input type="number" class="form-control" id="width" name="width" min="0" step="0.01">
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Add Part</button>
+        <a href="{{ url_for('parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Validate part number uniqueness
+    $('#part_number').on('change', function() {
+        var partNumber = $(this).val();
+        $.get('/api/check-part-number', {part_number: partNumber}, function(data) {
+            if (data.exists) {
+                $('#part_number').addClass('is-invalid');
+            } else {
+                $('#part_number').removeClass('is-invalid');
+            }
+        });
+    });
+    
+    // Validate price range
+    $('#max_price').on('change', function() {
+        var minPrice = parseFloat($('#min_price').val()) || 0;
+        var maxPrice = parseFloat($(this).val()) || 0;
+        
+        if (maxPrice < minPrice) {
+            alert('Maximum price cannot be less than minimum price');
+            $(this).val('');
+        }
+    });
+    
+    // Form validation
+    $('#addPartForm').on('submit', function(e) {
+        if ($('#part_number').hasClass('is-invalid')) {
+            e.preventDefault();
+            alert('Please fix the errors before submitting');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %} 

@@ -117,13 +117,13 @@ git clone [repository-url]
 cd spareparts
 ```
 
-2. Create and activate virtual environment:
+2. activate the virtual environment:
 ```bash
-python -m venv venv
+
 # On Windows:
-venv\Scripts\activate
+.\spareparts\Scripts\activate
 # On Unix or MacOS:
-source venv/bin/activate
+source spareparts/bin/activate
 ```
 
 3. Install dependencies:
@@ -142,10 +142,15 @@ DATABASE_URL=sqlite:///spms.db
 ```bash
 flask db upgrade
 ```
-
 6. Run the application:
 ```bash
-flask run
+python create_tables.py && python init_db.py
+
+```
+
+7. Run the application:
+```bash
+python wsgi.py
 ```
 
 ## First Time Setup
