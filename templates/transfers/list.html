@@ -13,7 +13,12 @@
                 <option value="cancelled">Cancelled</option>
             </select>
         </div>
-        <a href="{{ url_for('transfers.add_transfer') }}" class="btn btn-primary">New Transfer</a>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('reports.transfers') }}" class="btn btn-info">
+                <i class="bi bi-graph-up"></i> View Reports
+            </a>
+            <a href="{{ url_for('transfers.add_transfer') }}" class="btn btn-primary">New Transfer</a>
+        </div>
     </div>
     
     <div class="table-responsive">

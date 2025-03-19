@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Parts List</h2>
+    <div class="d-flex justify-content-between mb-3">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search parts...">
+            <select class="form-select" id="categoryFilter">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category.name }}">{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <a href="{{ url_for('parts.add_part') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New Part
+        </a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Part Number</th>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Stock Level</th>
+                    <th>Min Stock</th>
+                    <th>Color</th>
+                    <th>Image</th>
+                    <th>Description</th>
+                    <th>Unit</th>
+                    <th>Category</th>
+                    <th>Supplier</th>
+                    <th>Warehouse</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in parts %}
+                <tr>
+                    <td>{{ part.part_number }}</td>
+                    <td>{{ part.name }}</td>
+                    <td>{{ part.location }}</td>
+                    <td>{{ part.stock_level }}</td>
+                    <td>{{ part.min_stock }}</td>
+                    <td>{{ part.color if part.color else '-' }}</td>
+                    <td>
+                        {% if part.image_url %}
+                            <img src="{{ part.image_url }}" 
+                                 alt="{{ part.name }}" 
+                                 class="img-thumbnail" 
+                                 style="max-height: 50px; cursor: pointer"
+                                 onclick="showFullImage('{{ part.image_url }}', '{{ part.name }}')"
+                            >
+                        {% else %}
+                            <i class="bi bi-image-fill text-muted"></i>
+                        {% endif %}
+                    </td>
+                    <td>{{ part.description|truncate(50) if part.description else '-' }}</td>
+                    <td>{{ part.unit if part.unit else '-' }}</td>
+                    <td>{{ part.category.name if part.category else '-' }}</td>
+                    <td>{{ part.supplier.name if part.supplier else '-' }}</td>
+                    <td>
+                        {% if part.warehouse_stocks %}
+                            {% for stock in part.warehouse_stocks %}
+                                {{ stock.warehouse.name }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="fullSizeImage" src="" alt="" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showFullImage(imageUrl, partName) {
+    document.getElementById('imageModalTitle').textContent = partName;
+    document.getElementById('fullSizeImage').src = imageUrl;
+    document.getElementById('fullSizeImage').alt = partName;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+
+$(document).ready(function() {
+    $('#searchInput').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        filterTable(value, $('#categoryFilter').val());
+    });
+    
+    $('#categoryFilter').on('change', function() {
+        var value = $('#searchInput').val().toLowerCase();
+        filterTable(value, $(this).val());
+    });
+    
+    function filterTable(searchText, category) {
+        $("table tbody tr").filter(function() {
+            var matchesSearch = $(this).text().toLowerCase().indexOf(searchText) > -1;
+            var matchesCategory = !category || $(this).find("td:eq(9)").text() === category;
+            $(this).toggle(matchesSearch && matchesCategory);
+        });
+    }
+});
+</script>
+{% endblock %} 

@@ -15,3 +15,25 @@
 15. sales and purchases transactions should be added automatically to the revenue and expenses financial reports as well as to the "View All transactions" page. i want them to be seen and be added to the financial reports and statements.--Done
 16. add new page to reverse or void transactions and add it to financial management page.---Done
 17. add user management to just enable users to change password. ---Done 
+18. move purchase and credit purchases should be seen only by manager. --Done
+19. add CODE of part and substitute part number
+20. there could be multiple parts numbers for one item. this should be handled in the parts list and POS.
+21. Check number during POS
+22. List of Items to be selected during entry of parts.
+23. the cost price of the parts list should be seen only by the manager.
+24. dollar price handle with conversion
+25. export parts data 
+26. preliminary part data should be entered by staff and the manager can enter the cost price and selling price.
+27. export report from the sales page, that can be filtered by Sold by field. Put total amount of sale, total amount of parts, and total amount of total price. show todays transactions by default.
+28. add liters in the unit of measurement when entering new parts.
+29. remove length, width, height from the point of sale page. and don't let the dimensions not be shown int he table in the POS page.
+30. instead make the substitute part number and code/make be searchable and be shown in the table
+31. Dashboard :- remove recent transactions table and pending credits red and total parts. and change the stock levels graph to low stock parts graph. make the LOW stock parts yellow a button clickable and take you Low Stock Report page. make the active loans green a button and take you to Active Loans Report. 
+32. have a logo for EMANA solutions and put it in the navbar and add a favicon.
+33. have GitHub copilot build a documentation for the SPMS webapp.
+34. have about page that have info about the developer.
+35. create another page for the staff the same as the parts management page where the table shows only the:- part number, name, location, stock level, min stock, color, image, description, unit, category, supplier, warehouse. show latest created parts at the top of the list. 
+36. put a button called view in the stock transfer page before new transfer that takes you to the transfer reports page.
+37. hide the reports button from the navbar for staff rolled users. 
+38. show purchase history and sales history of parts inside the bin card with a link and a separate page.
+39. 

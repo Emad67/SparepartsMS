@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from models import db, Loan, Customer, Part, BinCard, WarehouseStock, Warehouse, Transaction, FinancialTransaction
 from datetime import datetime, timedelta
 from sqlalchemy import and_
+from utils.date_utils import parse_date_range, format_date
 
 loans = Blueprint('loans', __name__)
 
@@ -20,10 +21,14 @@ def list_loans():
     # Apply filters
     if customer_id:
         query = query.filter(Loan.customer_id == customer_id)
-    if due_date_start:
-        query = query.filter(Loan.due_date >= due_date_start)
-    if due_date_end:
-        query = query.filter(Loan.due_date <= due_date_end)
+    
+    # Parse date range
+    if due_date_start or due_date_end:
+        start_datetime, end_datetime = parse_date_range(due_date_start, due_date_end)
+        query = query.filter(
+            Loan.due_date >= start_datetime,
+            Loan.due_date <= end_datetime
+        )
     
     # Get all customers for the filter dropdown
     customers = Customer.query.order_by(Customer.name).all()
@@ -34,18 +39,13 @@ def list_loans():
     # Execute query and order by loan date
     loans = query.order_by(Loan.loan_date.desc()).all()
     
-    # Debug print to verify warehouses
-    print(f"Number of warehouses found: {len(warehouses)}")
-    for w in warehouses:
-        print(f"Warehouse: {w.name} ({w.location})")
-    
     return render_template('loans/list.html', 
                          loans=loans,
                          customers=customers,
                          warehouses=warehouses,
                          selected_customer_id=customer_id,
-                         due_date_start=due_date_start,
-                         due_date_end=due_date_end)
+                         due_date_start=format_date(start_datetime) if due_date_start else None,
+                         due_date_end=format_date(end_datetime) if due_date_end else None)
 
 @loans.route('/loans/add', methods=['GET', 'POST'])
 @login_required

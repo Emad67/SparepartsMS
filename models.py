@@ -102,7 +102,6 @@ class Part(db.Model):
         
         if total_quantity > 0:
             self.cost_price = total_cost / total_quantity
-            db.session.commit()
         
         return self.cost_price
 
@@ -234,6 +233,7 @@ class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     quantity = db.Column(db.Integer)
     unit_cost = db.Column(db.Float)
     total_cost = db.Column(db.Float)
@@ -244,6 +244,7 @@ class Purchase(db.Model):
     
     part = db.relationship('Part', backref='purchases')
     supplier = db.relationship('Supplier', backref='purchases')
+    warehouse = db.relationship('Warehouse', backref='purchases')
     user = db.relationship('User', backref='purchases')
 
     def update_part_cost_price(self):

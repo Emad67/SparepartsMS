@@ -47,16 +47,18 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('parts.') %}active{% endif %}" 
-                           href="{{ url_for('parts.list_parts') }}">
+                           href="{% if current_user.role == 'staff' %}{{ url_for('parts.staff_list_parts') }}{% else %}{{ url_for('parts.list_parts') }}{% endif %}">
                             <i class="bi bi-tools"></i> Parts
                         </a>
                     </li>
+                    {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('categories.') %}active{% endif %}" 
                            href="{{ url_for('categories.list_categories') }}">
                             <i class="bi bi-folder"></i> Categories
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('sales.') %}active{% endif %}" 
                            href="{{ url_for('sales.list_sales') }}">
@@ -69,30 +71,36 @@
                             <i class="bi bi-cart4"></i> POS
                         </a>
                     </li>
+                    {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('purchases.') %}active{% endif %}" 
                            href="{{ url_for('purchases.list_purchases') }}">
                             <i class="bi bi-cart-plus"></i> Purchases
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('loans.') %}active{% endif %}" 
                            href="{{ url_for('loans.list_loans') }}">
                             <i class="bi bi-box-arrow-right"></i> Loans
                         </a>
                     </li>
+                    {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('credits.') %}active{% endif %}" 
                            href="{{ url_for('credits.list_credits') }}">
                             <i class="bi bi-credit-card"></i> Credits
                         </a>
                     </li>
+                    {% endif %}
+                    {% if current_user.role != 'staff' %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('reports.') %}active{% endif %}" 
                            href="{{ url_for('reports.index') }}">
                             <i class="bi bi-file-earmark-text"></i> Reports
                         </a>
                     </li>
+                    {% endif %}
                     {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint.startswith('finance.') %}active{% endif %}" 

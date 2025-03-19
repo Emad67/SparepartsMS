@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, send_file, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from models import db, Part, Transaction, Loan, CreditPurchase, Purchase, FinancialTransaction, BinCard, Transfer, Location
+from models import db, Part, Transaction, Loan, CreditPurchase, Purchase, FinancialTransaction, BinCard, Transfer, Location, User
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from functools import wraps
@@ -14,6 +14,10 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 import xlsxwriter
+from utils.date_utils import (
+    parse_date_range, format_date, format_datetime,
+    get_start_of_day, get_end_of_day, get_date_range
+)
 
 reports = Blueprint('reports', __name__)
 
@@ -40,40 +44,73 @@ def low_stock():
 @reports.route('/reports/sales')
 @login_required
 def sales():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    user_id = request.args.get('user_id')
+    part_search = request.args.get('part_search', '')
     
-    sales = Transaction.query.filter(
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
+    
+    # Base query
+    query = Transaction.query.filter(
         Transaction.type == 'sale',
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    ).all()
+        Transaction.date >= start_datetime,
+        Transaction.date <= end_datetime
+    )
     
+    # Apply user filter if provided
+    if user_id:
+        query = query.filter(Transaction.user_id == user_id)
+    
+    # Apply part search if provided
+    if part_search:
+        search_term = f"%{part_search}%"
+        query = query.join(Part).filter(
+            db.or_(
+                Part.name.ilike(search_term),
+                Part.part_number.ilike(search_term)
+            )
+        )
+    
+    # Order by date descending (newest first)
+    query = query.order_by(Transaction.date.desc())
+    
+    sales = query.all()
+    
+    # Get all users who have made sales
+    users = User.query.join(Transaction).filter(Transaction.type == 'sale').distinct().all()
+    
+    # Calculate totals
     total_sales = sum(sale.price * sale.quantity for sale in sales)
     total_items = sum(sale.quantity for sale in sales)
     average_sale = total_sales / len(sales) if sales else 0
     
     return render_template('reports/sales.html', 
                          sales=sales,
-                         start_date=start_date,
-                         end_date=end_date,
+                         users=users,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_sales=total_sales,
                          total_items=total_items,
-                         average_sale=average_sale)
+                         average_sale=average_sale,
+                         user_id=user_id,
+                         part_search=part_search)
 
 @reports.route('/reports/purchases')
 @login_required
 def purchases():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
     status = request.args.get('status', '')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     # Base query
     query = Purchase.query.filter(
-        Purchase.purchase_date >= start_date,
-        Purchase.purchase_date <= end_date
+        Purchase.purchase_date >= start_datetime,
+        Purchase.purchase_date <= end_datetime
     )
     
     # Apply status filter if provided
@@ -91,8 +128,8 @@ def purchases():
     
     return render_template('reports/purchases.html', 
                          purchases=purchases,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_cost=total_cost,
                          total_items=total_items,
                          average_cost=average_cost,
@@ -103,14 +140,16 @@ def purchases():
 @login_required
 @finance_access_required
 def revenue():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     revenues = FinancialTransaction.query.filter(
         FinancialTransaction.type == 'revenue',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).all()
     
     total_revenue = sum(rev.amount for rev in revenues)
@@ -119,8 +158,8 @@ def revenue():
         func.sum(FinancialTransaction.amount)
     ).filter(
         FinancialTransaction.type == 'revenue',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).group_by(func.date(FinancialTransaction.date)).all()
     
     # Prepare data for the chart
@@ -129,8 +168,8 @@ def revenue():
     
     return render_template('reports/revenue.html',
                          revenues=revenues,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_revenue=total_revenue,
                          daily_revenue=daily_revenue,
                          dates=dates,
@@ -140,14 +179,16 @@ def revenue():
 @login_required
 @finance_access_required
 def expenses():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     expenses = FinancialTransaction.query.filter(
         FinancialTransaction.type == 'expense',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).all()
     
     total_expenses = sum(exp.amount for exp in expenses)
@@ -156,8 +197,8 @@ def expenses():
         func.sum(FinancialTransaction.amount)
     ).filter(
         FinancialTransaction.type == 'expense',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).group_by(func.date(FinancialTransaction.date)).all()
     
     # Prepare data for the chart
@@ -166,8 +207,8 @@ def expenses():
     
     return render_template('reports/expenses.html',
                          expenses=expenses,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_expenses=total_expenses,
                          daily_expenses=daily_expenses,
                          dates=dates,
@@ -177,9 +218,11 @@ def expenses():
 @login_required
 @finance_access_required
 def profit():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     # Get revenues and expenses
     revenues = db.session.query(
@@ -187,8 +230,8 @@ def profit():
         func.sum(FinancialTransaction.amount)
     ).filter(
         FinancialTransaction.type == 'revenue',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).group_by(func.date(FinancialTransaction.date)).all()
     
     expenses = db.session.query(
@@ -196,8 +239,8 @@ def profit():
         func.sum(FinancialTransaction.amount)
     ).filter(
         FinancialTransaction.type == 'expense',
-        FinancialTransaction.date >= start_date,
-        FinancialTransaction.date <= end_date
+        FinancialTransaction.date >= start_datetime,
+        FinancialTransaction.date <= end_datetime
     ).group_by(func.date(FinancialTransaction.date)).all()
     
     # Convert to dictionaries for easier access
@@ -231,8 +274,8 @@ def profit():
     
     return render_template('reports/profit.html',
                          daily_profits=daily_profits,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_revenue=total_revenue,
                          total_expenses=total_expenses,
                          total_profit=total_profit,
@@ -244,13 +287,15 @@ def profit():
 @reports.route('/reports/credits')
 @login_required
 def credits():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     credits = CreditPurchase.query.filter(
-        CreditPurchase.purchase_date >= start_date,
-        CreditPurchase.purchase_date <= end_date
+        CreditPurchase.purchase_date >= start_datetime,
+        CreditPurchase.purchase_date <= end_datetime
     ).all()
     
     total_pending = sum(credit.price * credit.quantity 
@@ -258,42 +303,46 @@ def credits():
                        
     return render_template('reports/credits.html', 
                          credits=credits,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          total_pending=total_pending)
 
 @reports.route('/reports/loans')
 @login_required
 def loans():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
+    
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
     loans = Loan.query.filter(
-        Loan.loan_date >= start_date,
-        Loan.loan_date <= end_date
+        Loan.loan_date >= start_datetime,
+        Loan.loan_date <= end_datetime
     ).all()
     
     return render_template('reports/loans.html',
                          loans=loans,
-                         start_date=start_date,
-                         end_date=end_date,
+                         start_date=format_date(start_datetime),
+                         end_date=format_date(end_datetime),
                          now=datetime.utcnow())
 
 @reports.route('/reports/transfers')
 @login_required
 def transfers():
-    start_date = request.args.get('start_date', 
-                                 (datetime.utcnow() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    end_date = request.args.get('end_date', datetime.utcnow().strftime('%Y-%m-%d'))
+    start_date_str = request.args.get('start_date')
+    end_date_str = request.args.get('end_date')
     from_location = request.args.get('from_location', type=int)
     to_location = request.args.get('to_location', type=int)
     status = request.args.get('status')
     
+    # Get date range with fallback to last 30 days
+    start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
+    
     # Base query
     query = Transfer.query.filter(
-        Transfer.created_at >= start_date,
-        Transfer.created_at <= end_date
+        Transfer.created_at >= start_datetime,
+        Transfer.created_at <= end_datetime
     )
     
     # Apply filters if provided
@@ -319,9 +368,9 @@ def transfers():
     if request.args.get('export') == 'excel':
         return export_transfers_excel(transfers)
     elif request.args.get('export') == 'pdf':
-        return export_transfers_pdf(transfers, summary, start_date, end_date)
+        return export_transfers_pdf(transfers, summary, format_date(start_datetime), format_date(end_datetime))
     elif request.args.get('export') == 'csv':
-        return export_transfers_csv(transfers, summary, start_date, end_date)
+        return export_transfers_csv(transfers, summary, format_date(start_datetime), format_date(end_datetime))
     
     return render_template('reports/transfers.html',
                          transfers=transfers,

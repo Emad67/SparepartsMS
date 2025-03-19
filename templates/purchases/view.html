@@ -26,6 +26,7 @@
                     <p><strong>Supplier:</strong> {{ purchase.supplier.name }}</p>
                     <p><strong>Part Name:</strong> {{ purchase.part.name }}</p>
                     <p><strong>Part Number:</strong> {{ purchase.part.part_number }}</p>
+                    <p><strong>Warehouse:</strong> {{ purchase.warehouse.name }} ({{ purchase.warehouse.location }})</p>
                     <p><strong>Quantity:</strong> {{ purchase.quantity }}</p>
                     <p><strong>Unit Cost:</strong> ${{ "%.2f"|format(purchase.unit_cost) }}</p>
                     <p><strong>Total Cost:</strong> ${{ "%.2f"|format(purchase.total_cost) }}</p>

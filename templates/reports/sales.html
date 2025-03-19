@@ -8,17 +8,33 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3">
-                <div class="col-auto">
+                <div class="col-md-2">
                     <label class="form-label">Start Date</label>
                     <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
                 </div>
-                <div class="col-auto">
+                <div class="col-md-2">
                     <label class="form-label">End Date</label>
                     <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
                 </div>
-                <div class="col-auto">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary d-block">Filter</button>
+                <div class="col-md-3">
+                    <label class="form-label">Sold By</label>
+                    <select class="form-select" name="user_id">
+                        <option value="">All Users</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if user_id == user.id|string %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Search Part</label>
+                    <input type="text" class="form-control" name="part_search" 
+                           value="{{ part_search }}" placeholder="Part name or number...">
+                </div>
+                <div class="col-auto align-self-end">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ url_for('reports.sales') }}" class="btn btn-secondary">Reset</a>
                 </div>
             </form>
         </div>
@@ -52,6 +68,12 @@
         </div>
     </div>
     
+    <!-- Export Buttons -->
+    <div class="btn-group mb-3">
+        <a href="{{ url_for('reports.export', report_type='sales', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+    
     <!-- Sales Table -->
     <div class="card">
         <div class="card-body">
@@ -59,31 +81,29 @@
                 <thead>
                     <tr>
                         <th>Date</th>
-                        <th>Part</th>
+                        <th>Part Number</th>
+                        <th>Part Name</th>
                         <th>Quantity</th>
                         <th>Unit Price</th>
                         <th>Total</th>
+                        <th>Sold By</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for sale in sales %}
                     <tr>
                         <td>{{ sale.date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ sale.part.part_number }}</td>
                         <td>{{ sale.part.name }}</td>
                         <td>{{ sale.quantity }}</td>
                         <td>${{ "%.2f"|format(sale.price) }}</td>
                         <td>${{ "%.2f"|format(sale.price * sale.quantity) }}</td>
+                        <td>{{ sale.user.username }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- Add this in the appropriate location -->
-    <div class="btn-group">
-        <a href="{{ url_for('reports.export', report_type='sales', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='sales', format='pdf') }}" class="btn btn-danger">Export PDF</a>
     </div>
 </div>
 {% endblock %} 

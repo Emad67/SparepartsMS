@@ -4,6 +4,13 @@
 <div class="container">
     <h2 class="mb-4">Purchases Report</h2>
     
+    <div class="btn-group mb-3">
+        <a href="{{ url_for('reports.export', report_type='purchases', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+           class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='purchases', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+           class="btn btn-danger">Export PDF</a>
+    </div>
+    
     <!-- Date Range and Status Filter -->
     <div class="card mb-4">
         <div class="card-body">
@@ -97,16 +104,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-    
-    <!-- Export Buttons -->
-    <div class="mt-3">
-        <div class="btn-group">
-            <a href="{{ url_for('reports.export', report_type='purchases', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" 
-               class="btn btn-success">Export CSV</a>
-            <a href="{{ url_for('reports.export', report_type='purchases', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" 
-               class="btn btn-danger">Export PDF</a>
         </div>
     </div>
 </div>

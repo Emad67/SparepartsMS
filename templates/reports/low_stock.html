@@ -11,6 +11,11 @@
         </div>
     </div>
     
+    <div class="btn-group mb-3">
+        <a href="{{ url_for('reports.export', report_type='low_stock', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='low_stock', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+    
     <table class="table table-striped">
         <thead>
             <tr>
@@ -39,10 +44,5 @@
             {% endfor %}
         </tbody>
     </table>
-    
-    <div class="btn-group">
-        <a href="{{ url_for('reports.export', report_type='low_stock', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='low_stock', format='pdf') }}" class="btn btn-danger">Export PDF</a>
-    </div>
 </div>
 {% endblock %} 

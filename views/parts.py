@@ -4,6 +4,7 @@ from models import db, Part, Category, Supplier, BinCard, Warehouse, WarehouseSt
 from werkzeug.utils import secure_filename
 import os
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import desc
 
 parts = Blueprint('parts', __name__)
 
@@ -13,6 +14,23 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@parts.route('/parts/staff')
+@login_required
+def staff_list_parts():
+    # Get all parts ordered by creation date (newest first)
+    parts = Part.query.order_by(desc(Part.created_at)).all()
+    
+    # Update stock levels from all warehouses
+    for part in parts:
+        # Calculate total stock across all warehouses
+        total_stock = sum(stock.quantity for stock in part.warehouse_stocks)
+        part.stock_level = total_stock
+    
+    # Get categories for filtering
+    categories = Category.query.all()
+    
+    return render_template('parts/staff_list.html', parts=parts, categories=categories)
 
 @parts.route('/parts')
 @login_required

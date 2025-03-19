@@ -185,9 +185,38 @@
                         <div class="mb-3">
                             <label for="unit" class="form-label">Unit</label>
                             <select class="form-select" id="unit" name="unit">
-                                <option value="piece" {% if part.unit == 'piece' %}selected{% endif %}>Piece</option>
-                                <option value="set" {% if part.unit == 'set' %}selected{% endif %}>Set</option>
-                                <option value="box" {% if part.unit == 'box' %}selected{% endif %}>Box</option>
+                                <optgroup label="Count/Quantity">
+                                    <option value="piece" {% if part.unit == 'piece' %}selected{% endif %}>Piece</option>
+                                    <option value="set" {% if part.unit == 'set' %}selected{% endif %}>Set</option>
+                                    <option value="box" {% if part.unit == 'box' %}selected{% endif %}>Box</option>
+                                </optgroup>
+                                <optgroup label="Volume/Liquid">
+                                    <option value="liters" {% if part.unit == 'liters' %}selected{% endif %}>Liters</option>
+                                    <option value="milliliters" {% if part.unit == 'milliliters' %}selected{% endif %}>Milliliters</option>
+                                    <option value="gallons" {% if part.unit == 'gallons' %}selected{% endif %}>Gallons</option>
+                                </optgroup>
+                                <optgroup label="Weight/Mass">
+                                    <option value="kilograms" {% if part.unit == 'kilograms' %}selected{% endif %}>Kilograms</option>
+                                    <option value="grams" {% if part.unit == 'grams' %}selected{% endif %}>Grams</option>
+                                    <option value="pounds" {% if part.unit == 'pounds' %}selected{% endif %}>Pounds</option>
+                                </optgroup>
+                                <optgroup label="Length">
+                                    <option value="meters" {% if part.unit == 'meters' %}selected{% endif %}>Meters</option>
+                                    <option value="centimeters" {% if part.unit == 'centimeters' %}selected{% endif %}>Centimeters</option>
+                                    <option value="inches" {% if part.unit == 'inches' %}selected{% endif %}>Inches</option>
+                                    <option value="feet" {% if part.unit == 'feet' %}selected{% endif %}>Feet</option>
+                                </optgroup>
+                                <optgroup label="Area">
+                                    <option value="square_meters" {% if part.unit == 'square_meters' %}selected{% endif %}>Square Meters</option>
+                                    <option value="square_feet" {% if part.unit == 'square_feet' %}selected{% endif %}>Square Feet</option>
+                                </optgroup>
+                                <optgroup label="Bulk/Package">
+                                    <option value="roll" {% if part.unit == 'roll' %}selected{% endif %}>Roll</option>
+                                    <option value="drum" {% if part.unit == 'drum' %}selected{% endif %}>Drum</option>
+                                    <option value="pallet" {% if part.unit == 'pallet' %}selected{% endif %}>Pallet</option>
+                                    <option value="pack" {% if part.unit == 'pack' %}selected{% endif %}>Pack</option>
+                                    <option value="carton" {% if part.unit == 'carton' %}selected{% endif %}>Carton</option>
+                                </optgroup>
                             </select>
                         </div>
                     </div>

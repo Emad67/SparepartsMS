@@ -1,11 +1,13 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from models import db, Category
+from views.utils import role_required
 
 categories = Blueprint('categories', __name__)
 
 @categories.route('/categories')
 @login_required
+@role_required('admin', 'manager')
 def list_categories():
     categories = Category.query.all()
     return render_template('categories/list.html', categories=categories)

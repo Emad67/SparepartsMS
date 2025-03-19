@@ -23,6 +23,7 @@
                 <th>Invoice #</th>
                 <th>Part</th>
                 <th>Supplier</th>
+                <th>Warehouse</th>
                 <th>Quantity</th>
                 <th>Unit Cost</th>
                 <th>Total Cost</th>
@@ -37,6 +38,7 @@
                 <td>{{ purchase.invoice_number }}</td>
                 <td>{{ purchase.part.name }}</td>
                 <td>{{ purchase.supplier.name }}</td>
+                <td>{{ purchase.warehouse.name }}</td>
                 <td>{{ purchase.quantity }}</td>
                 <td>${{ "%.2f"|format(purchase.unit_cost) }}</td>
                 <td>${{ "%.2f"|format(purchase.total_cost) }}</td>
@@ -71,18 +73,21 @@
 $(document).ready(function() {
     $('#searchInput').on('keyup', function() {
         var value = $(this).val().toLowerCase();
-        var status = $('#statusFilter').val().toLowerCase();
-        
         $("table tbody tr").filter(function() {
-            var text = $(this).text().toLowerCase();
-            var matchesSearch = text.indexOf(value) > -1;
-            var matchesStatus = !status || $(this).find('td:eq(7)').text().trim().toLowerCase() === status;
-            $(this).toggle(matchesSearch && matchesStatus);
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
         });
     });
     
-    $('#statusFilter').change(function() {
-        $('#searchInput').trigger('keyup');
+    $('#statusFilter').on('change', function() {
+        var value = $(this).val().toLowerCase();
+        if (value === '') {
+            $("table tbody tr").show();
+        } else {
+            $("table tbody tr").filter(function() {
+                var status = $(this).find('td:nth-last-child(2)').text().trim().toLowerCase();
+                $(this).toggle(status === value);
+            });
+        }
     });
 });
 </script>

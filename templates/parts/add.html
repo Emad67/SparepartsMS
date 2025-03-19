@@ -84,9 +84,38 @@
                     <label for="unit" class="form-label">Unit *</label>
                     <select class="form-select" id="unit" name="unit" required>
                         <option value="">Select Unit</option>
-                        <option value="piece">Piece</option>
-                        <option value="set">Set</option>
-                        <option value="box">Box</option>
+                        <optgroup label="Count/Quantity">
+                            <option value="piece">Piece</option>
+                            <option value="set">Set</option>
+                            <option value="box">Box</option>
+                        </optgroup>
+                        <optgroup label="Volume/Liquid">
+                            <option value="liters">Liters</option>
+                            <option value="milliliters">Milliliters</option>
+                            <option value="gallons">Gallons</option>
+                        </optgroup>
+                        <optgroup label="Weight/Mass">
+                            <option value="kilograms">Kilograms</option>
+                            <option value="grams">Grams</option>
+                            <option value="pounds">Pounds</option>
+                        </optgroup>
+                        <optgroup label="Length">
+                            <option value="meters">Meters</option>
+                            <option value="centimeters">Centimeters</option>
+                            <option value="inches">Inches</option>
+                            <option value="feet">Feet</option>
+                        </optgroup>
+                        <optgroup label="Area">
+                            <option value="square_meters">Square Meters</option>
+                            <option value="square_feet">Square Feet</option>
+                        </optgroup>
+                        <optgroup label="Bulk/Package">
+                            <option value="roll">Roll</option>
+                            <option value="drum">Drum</option>
+                            <option value="pallet">Pallet</option>
+                            <option value="pack">Pack</option>
+                            <option value="carton">Carton</option>
+                        </optgroup>
                     </select>
                 </div>
                 

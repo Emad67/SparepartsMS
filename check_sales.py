@@ -1,0 +1,1 @@
+from app import create_app; from models import Transaction; app = create_app(); app.app_context().push(); sales = Transaction.query.filter_by(type='sale').all(); print(f'Total sales found: {len(sales)}'); for sale in sales: print(f'Date: {sale.date}, Type: {sale.type}, Quantity: {sale.quantity}, Price: {sale.price}')

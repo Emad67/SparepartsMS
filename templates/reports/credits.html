@@ -4,6 +4,11 @@
 <div class="container">
     <h2 class="mb-4">Credit Purchases Report</h2>
     
+    <div class="btn-group mb-3">
+        <a href="{{ url_for('reports.export', report_type='credits', format='csv') }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='credits', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    </div>
+    
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Summary</h5>
@@ -15,7 +20,7 @@
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Customer</th>
+                <th>Supplier</th>
                 <th>Part</th>
                 <th>Quantity</th>
                 <th>Amount</th>
@@ -26,8 +31,8 @@
         <tbody>
             {% for credit in credits %}
             <tr>
-                <td>{{ credit.purchase_date.strftime('%Y-%m-d') }}</td>
-                <td>{{ credit.customer.name }}</td>
+                <td>{{ credit.purchase_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ credit.supplier.name }}</td>
                 <td>{{ credit.part.name }}</td>
                 <td>{{ credit.quantity }}</td>
                 <td>${{ "%.2f"|format(credit.price * credit.quantity) }}</td>
@@ -43,10 +48,5 @@
             {% endfor %}
         </tbody>
     </table>
-    
-    <div class="btn-group">
-        <a href="{{ url_for('reports.export', report_type='credits', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='credits', format='pdf') }}" class="btn btn-danger">Export PDF</a>
-    </div>
 </div>
 {% endblock %} 

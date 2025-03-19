@@ -3,11 +3,14 @@ from flask_login import login_required, current_user
 from models import db, CreditPurchase, Supplier, Part, BinCard, WarehouseStock, Warehouse, FinancialTransaction
 from datetime import datetime, timedelta
 from sqlalchemy import and_
+from views.utils import role_required
+from utils.date_utils import parse_date_range, format_date
 
 credits = Blueprint('credits', __name__)
 
 @credits.route('/credits')
 @login_required
+@role_required('admin', 'manager')
 def list_credits():
     # Get filter parameters
     supplier_id = request.args.get('supplier_id', type=int)
@@ -20,10 +23,14 @@ def list_credits():
     # Apply filters
     if supplier_id:
         query = query.filter(CreditPurchase.supplier_id == supplier_id)
-    if due_date_start:
-        query = query.filter(CreditPurchase.due_date >= due_date_start)
-    if due_date_end:
-        query = query.filter(CreditPurchase.due_date <= due_date_end)
+    
+    # Parse date range
+    if due_date_start or due_date_end:
+        start_datetime, end_datetime = parse_date_range(due_date_start, due_date_end)
+        query = query.filter(
+            CreditPurchase.due_date >= start_datetime,
+            CreditPurchase.due_date <= end_datetime
+        )
     
     # Get all suppliers for the filter dropdown
     suppliers = Supplier.query.order_by(Supplier.name).all()
@@ -35,11 +42,12 @@ def list_credits():
                          credits=credits,
                          suppliers=suppliers,
                          selected_supplier_id=supplier_id,
-                         due_date_start=due_date_start,
-                         due_date_end=due_date_end)
+                         due_date_start=format_date(start_datetime) if due_date_start else None,
+                         due_date_end=format_date(end_datetime) if due_date_end else None)
 
 @credits.route('/credits/add', methods=['GET', 'POST'])
 @login_required
+@role_required('admin', 'manager')
 def add_credit():
     if request.method == 'POST':
         supplier_id = request.form.get('supplier_id')
@@ -123,6 +131,7 @@ def add_credit():
 
 @credits.route('/credits/<int:id>/mark-paid', methods=['POST'])
 @login_required
+@role_required('admin', 'manager')
 def mark_paid(id):
     credit = CreditPurchase.query.get_or_404(id)
     
@@ -147,4 +156,4 @@ def mark_paid(id):
     
     db.session.commit()
     flash('Credit purchase marked as paid')
-    return redirect(url_for('credits.list_credits')) 
+    return redirect(url_for('credits.list_credits'))
