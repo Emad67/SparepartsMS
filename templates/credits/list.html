@@ -48,7 +48,8 @@
                 <th>Supplier</th>
                 <th>Part</th>
                 <th>Quantity</th>
-                <th>Price</th>
+                <th>Unit Cost</th>
+                <th>Total Cost</th>
                 <th>Purchase Date</th>
                 <th>Due Date</th>
                 <th>Status</th>
@@ -61,7 +62,8 @@
                 <td>{{ credit.supplier.name if credit.supplier else 'N/A' }}</td>
                 <td>{{ credit.part.name if credit.part else 'N/A' }}</td>
                 <td>{{ credit.quantity }}</td>
-                <td>${{ "%.2f"|format(credit.price) }}</td>
+                <td>{{ "%.2f" | format( credit.price) }} NKF</td>
+                <td>{{ "%.2f" | format( credit.price * credit.quantity) }} NKF</td>
                 <td>{{ credit.purchase_date.strftime('%Y-%m-%d') }}</td>
                 <td>{{ credit.due_date.strftime('%Y-%m-%d') }}</td>
                 <td>

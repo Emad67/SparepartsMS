@@ -18,7 +18,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Total Revenue</h5>
-            <h3 class="text-success">${{ "%.2f"|format(total_revenue) }}</h3>
+            <h3 class="text-success">{{ "%.2f" | format( total_revenue) }} NKF</h3>
             <p class="card-text">For selected period</p>
         </div>
     </div>
@@ -72,7 +72,7 @@
                         <tr>
                             <td>{{ revenue.date.strftime('%Y-%m-%d') }}</td>
                             <td>{{ revenue.category or 'N/A' }}</td>
-                            <td>${{ "%.2f"|format(revenue.amount) }}</td>
+                            <td>{{ "%.2f" | format( revenue.amount) }} NKF</td>
                             <td>{{ revenue.description or 'N/A' }}</td>
                             <td>{{ revenue.reference_id or 'N/A' }}</td>
                         </tr>

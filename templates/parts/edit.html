@@ -18,13 +18,13 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="make" class="form-label">Make</label>
-                    <input type="text" class="form-control" id="make" name="make" value="{{ part.make }}">
+                    <label for="substitute_part_number" class="form-label">Substitute Part Number</label>
+                    <input type="text" class="form-control" id="substitute_part_number" name="substitute_part_number" value="{{ part.substitute_part_number or '' }}">
                 </div>
                 
                 <div class="mb-3">
-                    <label for="model" class="form-label">Model</label>
-                    <input type="text" class="form-control" id="model" name="model" value="{{ part.model }}">
+                    <label for="code" class="form-label">Code</label>
+                    <input type="text" class="form-control" id="code" name="code" value="{{ part.code or '' }}">
                 </div>
                 
                 <div class="mb-3">

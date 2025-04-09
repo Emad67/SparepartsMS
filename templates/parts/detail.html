@@ -46,7 +46,7 @@
                     <h5 class="card-title">Cost Price</h5>
                     <h2 class="card-text">
                         {% if part.cost_price %}
-                            ${{ "%.2f"|format(part.cost_price) }}
+                            {{ part.cost_price|nkf }}
                         {% else %}
                             -
                         {% endif %}
@@ -81,10 +81,10 @@
                             <td>{{ part.description }}</td>
                         </tr>
                         <tr>
-                            <th>Unit Price Range:</th>
+                            <th>Price Range:</th>
                             <td>
                                 {% if part.min_price or part.max_price %}
-                                    ${{ "%.2f"|format(part.min_price|default(0)) }} - ${{ "%.2f"|format(part.max_price|default(0)) }}
+                                    {{ part.min_price|nkf }} - {{ part.max_price|nkf }}
                                 {% else %}
                                     -
                                 {% endif %}
@@ -92,14 +92,7 @@
                         </tr>
                         <tr>
                             <th>Cost Price:</th>
-                            <td>
-                                {% if part.cost_price %}
-                                    <strong class="text-success">${{ "%.2f"|format(part.cost_price) }}</strong>
-                                    <small class="text-muted ms-2">(Calculated from purchases)</small>
-                                {% else %}
-                                    <span class="text-muted">Not yet calculated</span>
-                                {% endif %}
-                            </td>
+                            <td>{{ part.cost_price|nkf }}</td>
                         </tr>
                         <tr>
                             <th>Supplier:</th>

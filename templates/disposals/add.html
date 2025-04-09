@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+   
+    
+    <h2 class="mb-4">Record Part Disposal</h2>
+    
+    <form method="POST" class="needs-validation" novalidate>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="part_id" class="form-label">Part</label>
+                <select class="form-select" id="part_id" name="part_id" required>
+                    <option value="">Select Part</option>
+                    {% for part in parts %}
+                    <option value="{{ part.id }}">{{ part.part_number }} - {{ part.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <label for="warehouse_id" class="form-label">Warehouse</label>
+                <select class="form-select" id="warehouse_id" name="warehouse_id" required>
+                    <option value="">Select Warehouse</option>
+                    {% for warehouse in warehouses %}
+                    <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="quantity" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="quantity" name="quantity" required min="1">
+                <div id="available-stock" class="form-text text-muted">
+                    Available stock: <span id="stock-quantity">-</span>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <label for="reason" class="form-label">Reason for Disposal</label>
+                <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Record Disposal</button>
+        <a href="{{ url_for('disposals.list_disposals') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const partSelect = document.getElementById('part_id');
+    const warehouseSelect = document.getElementById('warehouse_id');
+    const quantityInput = document.getElementById('quantity');
+    const stockSpan = document.getElementById('stock-quantity');
+    
+    function updateAvailableStock() {
+        const partId = partSelect.value;
+        const warehouseId = warehouseSelect.value;
+        
+        if (partId && warehouseId) {
+            fetch(`/api/warehouse-stock?part_id=${partId}&warehouse_id=${warehouseId}`)
+                .then(response => response.json())
+                .then(data => {
+                    stockSpan.textContent = data.quantity;
+                    quantityInput.max = data.quantity;
+                });
+        } else {
+            stockSpan.textContent = '-';
+        }
+    }
+    
+    partSelect.addEventListener('change', updateAvailableStock);
+    warehouseSelect.addEventListener('change', updateAvailableStock);
+});
+</script>
+{% endblock %}
+{% endblock %} 

@@ -12,7 +12,9 @@
                     <select class="form-select" id="part_id" name="part_id" required>
                         <option value="">Search Part by Number or Name</option>
                         {% for part in parts %}
-                        <option value="{{ part.id }}" data-part-number="{{ part.part_number }}">
+                        <option value="{{ part.id }}" 
+                                data-part-number="{{ part.part_number }}"
+                                data-part-name="{{ part.name }}" >
                             {{ part.part_number }} - {{ part.name }}
                         </option>
                         {% endfor %}
@@ -96,15 +98,33 @@ $(document).ready(function() {
 
             // Search in both part number and name
             const partData = $(data.element);
-            const partNumber = partData.data('part-number').toLowerCase();
-            const partName = data.text.toLowerCase();
-            const searchTerm = params.term.toLowerCase();
+            const partNumber = (partData.data('part-number')|| '').toLowerCase().trim();
+            const partName = (partData.data('part-name') || '').toLowerCase().trim();
+            const searchTerm = params.term.toLowerCase().trim() ;
+            const text = (data.text || '').toLowerCase().trim();
 
-            if (partNumber.indexOf(searchTerm) > -1 || partName.indexOf(searchTerm) > -1) {
-                return data;
-            }
+          // Check if the search term matches any of the target strings
+        if (text.includes(searchTerm) ||
+            partNumber.includes(searchTerm) || 
+            partName.includes(searchTerm)) {
+            return data;
+        }
 
             return null;
+        },
+        templateResult: function(data) {
+            if (!data.id) return data.text;
+            
+            const $option = $(data.element);
+            const partNumber = $option.data('part-number');
+            const partName = $option.data('part-name');
+            
+            let html = `<div><strong>${data.text}</strong>`;
+            if (partNumber) html += `<br><small>part Number: ${partNumber}</small>`;
+            if (partName) html += `<br><small>part Name: ${partName}</small>`;
+            html += '</div>';
+            
+            return $(html);
         }
     });
 

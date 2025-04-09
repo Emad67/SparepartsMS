@@ -1,28 +1,159 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Login</div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+<div class="container-fluid">
+    <div class="row justify-content-center align-items-center min-vh-100 p-0">
+        <div class="col-xxl-8 col-xl-9 col-lg-10 col-md-11 col-sm-12 p-0">
+            <div class="card shadow-lg border-0">
+                <div class="row g-0">
+                    <!-- Left side with logo and background -->
+                    <div class="col-lg-5 bg-primary text-white position-relative d-flex flex-column justify-content-center" 
+                         style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); min-height: 600px;">
+                        <div class="p-5 text-center">
+                            <img src="{{ url_for('static', filename='images/White And Black Modern Concept Workshop And Wash Logo (1).gif') }}" 
+                                 alt="Company Logo" 
+                                 class="img-fluid mb-5"
+                                 style="max-width: 200px;">
+                            <h2 class="display-6 fw-bold mb-4">Welcome Back!</h2>
+                            <p class="lead text-light mb-0">Sign in to access your SPMS dashboard</p>
+                        </div>
+                        <!-- Decorative circles -->
+                        <div class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden">
+                            <div class="position-absolute rounded-circle" 
+                                 style="width: 200px; height: 200px; background: rgba(255,255,255,0.1); top: -100px; left: -100px;"></div>
+                            <div class="position-absolute rounded-circle" 
+                                 style="width: 300px; height: 300px; background: rgba(255,255,255,0.1); bottom: -150px; right: -150px;"></div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    
+                    <!-- Right side with login form -->
+                    <div class="col-lg-7">
+                        <div class="card-body p-5">
+                            <div class="px-4">
+                                <h2 class="text-center display-6 mb-5">Login</h2>
+                                <form method="POST">
+                                    <div class="mb-4">
+                                        <label for="email" class="form-label fs-5">Email Address</label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-light">
+                                                <i class="bi bi-envelope-fill"></i>
+                                            </span>
+                                            <input type="email" class="form-control bg-light" 
+                                                   id="email" name="email" required 
+                                                   placeholder="Enter your email">
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="password" class="form-label fs-5">Password</label>
+                                        <div class="input-group input-group-lg">
+                                            <span class="input-group-text bg-light">
+                                                <i class="bi bi-lock-fill"></i>
+                                            </span>
+                                            <input type="password" class="form-control bg-light" 
+                                                   id="password" name="password" required 
+                                                   placeholder="Enter your password">
+                                        </div>
+                                    </div>
+                                    <div class="mb-4 form-check">
+                                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                        <label class="form-check-label" for="remember">Remember me</label>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg py-3 fs-5">Sign In</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label" for="remember">Remember me</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block styles %}
+<style>
+.card {
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.input-group-text {
+    border-right: none;
+    padding: 0.75rem 1.2rem;
+}
+
+.input-group .form-control {
+    border-left: none;
+}
+
+.input-group .form-control:focus {
+    border-color: #dee2e6;
+    box-shadow: none;
+    background-color: #f8f9fa;
+}
+
+.input-group-text i {
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.btn-primary {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .card {
+        border-radius: 0;
+        min-height: 100vh;
+    }
+    
+    .col-lg-5 {
+        min-height: 400px !important;
+    }
+    
+    .card-body {
+        padding: 2rem !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .card-body {
+        padding: 1.5rem !important;
+    }
+    
+    .px-4 {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .col-lg-5 {
+        min-height: 300px !important;
+    }
+}
+
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* Remove autofill background color */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset;
+}
+</style>
+{% endblock %}

@@ -13,7 +13,16 @@
                 {% endfor %}
             </select>
         </div>
-        <a href="{{ url_for('parts.add_part') }}" class="btn btn-primary">Add New Part</a>
+        <div class="mb-3">
+            <a href="{{ url_for('parts.add_part') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Part
+            </a>
+            {% if current_user.role in ['admin', 'manager'] %}
+            <a href="{{ url_for('parts.export_parts') }}" class="btn btn-success ms-2">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </a>
+            {% endif %}
+        </div>
     </div>
     
     <div class="table-responsive">
@@ -28,19 +37,21 @@
                     <th>Make</th>
                     <th>Stock Level</th>
                     <th>Min Stock</th>
+                    <th>Price Range (Min-Max)</th>
+                    <th>Cost Price</th>
+                    <th>Image</th>
+                    <th>Description</th>
                     <th>Weight</th>
                     <th>Dimensions (L×W×H)</th>
                     <th>Color</th>
-                    <th>Image</th>
-                    <th>Description</th>
-                    <th>Unit</th>
-                    <th>Price Range (Min-Max)</th>
-                    <th>Cost Price</th>
+                    <th>Unit</th>                    
                     <th>Category</th>
                     <th>Supplier</th>
                     <th>Warehouse</th>
                     <th>Created At</th>
                     <th>Updated At</th>
+                    <th>Barcode</th>
+                    <th>Warranty Period (Months)</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,19 +74,26 @@
                     <td>{{ part.part_number }}</td>
                     <td>{{ part.name }}</td>
                     <td>{{ part.location }}</td>
-                    <td>{{ part.model }}</td>
-                    <td>{{ part.make }}</td>
+                    <td>{{ part.code|default('-') }}</td>
+                    <td>{{ part.substitute_part_number|default('-') }}</td>
                     <td>{{ part.stock_level }}</td>
                     <td>{{ part.min_stock }}</td>
-                    <td>{{ part.weight if part.weight else '-' }}</td>
                     <td>
-                        {% if part.length or part.width or part.height %}
-                            {{ part.length|default('0') }}×{{ part.width|default('0') }}×{{ part.height|default('0') }}
+                        {% if part.min_price or part.max_price %}
+                            {{ part.min_price|nkf }} - {{ part.max_price|nkf }}
                         {% else %}
                             -
                         {% endif %}
                     </td>
-                    <td>{{ part.color if part.color else '-' }}</td>
+                    <td class="text-end">
+                        {% if part.cost_price %}
+                            <span class="badge bg-dark">
+                                {{ "%.2f" | format( part.cost_price) }} NKF
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if part.image_url %}
                             <img src="{{ part.image_url }}" 
@@ -89,23 +107,16 @@
                         {% endif %}
                     </td>
                     <td>{{ part.description|truncate(50) if part.description else '-' }}</td>
-                    <td>{{ part.unit if part.unit else '-' }}</td>
+                    <td>{{ part.weight if part.weight else '-' }}</td>
                     <td>
-                        {% if part.min_price or part.max_price %}
-                            ${{ "%.2f"|format(part.min_price|default(0)) }} - ${{ "%.2f"|format(part.max_price|default(0)) }}
+                        {% if part.length or part.width or part.height %}
+                            {{ part.length|default('0') }}×{{ part.width|default('0') }}×{{ part.height|default('0') }}
                         {% else %}
                             -
                         {% endif %}
                     </td>
-                    <td class="text-end">
-                        {% if part.cost_price %}
-                            <span class="badge bg-dark">
-                                ${{ "%.2f"|format(part.cost_price) }}
-                            </span>
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
+                    <td>{{ part.color if part.color else '-' }}</td>                    
+                    <td>{{ part.unit if part.unit else '-' }}</td>                    
                     <td>{{ part.category.name if part.category else '-' }}</td>
                     <td>{{ part.supplier.name if part.supplier else '-' }}</td>
                     <td>
@@ -119,6 +130,8 @@
                     </td>
                     <td>{{ part.created_at.strftime('%Y-%m-%d') }}</td>
                     <td>{{ part.updated_at.strftime('%Y-%m-%d') if part.updated_at else '-' }}</td>
+                    <td>{{ part.barcode if part.barcode else '-' }}</td>
+                    <td>{{ part.warranty_period if part.warranty_period else '-' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

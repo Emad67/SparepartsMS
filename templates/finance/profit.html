@@ -39,24 +39,24 @@
         <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Total Revenue</h5>
-                    <h2 class="card-text">${{ "%.2f"|format(total_revenue) }}</h2>
+                    <h4>Total Revenue</h4>
+                    <h2>{{ "%.2f" | format( total_revenue) }} NKF</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Total Expenses</h5>
-                    <h2 class="card-text">${{ "%.2f"|format(total_expenses) }}</h2>
+                    <h4>Total Expenses</h4>
+                    <h2>{{ "%.2f" | format( total_expenses) }} NKF</h2>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card {% if total_profit >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+            <div class="card {% if total_revenue - total_expenses >= 0 %}bg-info{% else %}bg-danger{% endif %} text-white">
                 <div class="card-body text-center">
-                    <h5 class="card-title">Net Profit</h5>
-                    <h2 class="card-text">${{ "%.2f"|format(total_profit) }}</h2>
+                    <h4>Net Profit</h4>
+                    <h2>{{ "%.2f" | format( total_revenue - total_expenses) }} NKF</h2>
                 </div>
             </div>
         </div>
@@ -91,11 +91,11 @@
                         {% for date, revenue, expense, profit in daily_profits %}
                         <tr>
                             <td>{{ date }}</td>
-                            <td>${{ "%.2f"|format(revenue) }}</td>
-                            <td>${{ "%.2f"|format(expense) }}</td>
+                            <td>NKF {{ "%.2f"|format(revenue) }}</td>
+                            <td>NKF {{ "%.2f"|format(expense) }}</td>
                             <td>
                                 <span class="{% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                    ${{ "%.2f"|format(profit) }}
+                                    NKF {{ "%.2f"|format(profit) }}
                                 </span>
                             </td>
                             <td>
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return '$' + value.toFixed(2);
+                            return 'NKF' + value.toFixed(2);
                         }
                     }
                 }

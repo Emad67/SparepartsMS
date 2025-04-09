@@ -448,7 +448,7 @@ def generate_pdf(data, title, headers):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter,
                           leftMargin=36, rightMargin=36,
-                          topMargin=72, bottomMargin=72)
+                          topMargin=30, bottomMargin=30)
     elements = []
     
     styles = getSampleStyleSheet()
@@ -458,7 +458,7 @@ def generate_pdf(data, title, headers):
         'Header',
         parent=styles['Heading1'],
         fontSize=24,
-        spaceAfter=30,
+        spaceAfter=15,
         alignment=1,  # Center alignment
         textColor=colors.HexColor('#1a237e')  # Dark blue color
     )
@@ -469,31 +469,31 @@ def generate_pdf(data, title, headers):
         'Company',
         parent=styles['Normal'],
         fontSize=14,
-        spaceAfter=30,
+        spaceAfter=10,
         alignment=1,
         textColor=colors.HexColor('#424242')  # Dark grey color
     )
     elements.append(Paragraph("by EMANA Solutions", company_style))
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 5))
     
     # Add report title
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading2'],
         fontSize=18,
-        spaceAfter=30,
-        alignment=1,
+        spaceAfter=1,
+        alignment=0,
         textColor=colors.HexColor('#1976d2')  # Blue color
     )
     elements.append(Paragraph(title, title_style))
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 5))
     
     # Add date
     date_style = ParagraphStyle(
         'Date',
         parent=styles['Normal'],
         fontSize=10,
-        alignment=1,
+        alignment=2,
         textColor=colors.grey
     )
     elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style))
@@ -637,14 +637,14 @@ def export_csv(report_type):
         total_quantity = 0
         total_cost = 0
         for purchase in purchases:
-            row = f'{purchase.purchase_date.strftime("%Y-%m-%d")},{purchase.part.name},{purchase.supplier.name},{purchase.quantity},${purchase.unit_cost:.2f},${purchase.total_cost:.2f},{purchase.status}\n'
+            row = f'{purchase.purchase_date.strftime("%Y-%m-%d")},{purchase.part.name},{purchase.supplier.name},{purchase.quantity},{purchase.unit_cost:.2f},{purchase.total_cost:.2f},{purchase.status}\n'
             buffer.write(row.encode('utf-8'))
             total_quantity += purchase.quantity
             total_cost += purchase.total_cost
         
         # Write totals
         buffer.write('\n'.encode('utf-8'))
-        buffer.write(f'Totals,,,,{total_quantity},${total_cost:.2f},\n'.encode('utf-8'))
+        buffer.write(f'Totals,,,,{total_quantity},{total_cost:.2f},\n'.encode('utf-8'))
         
     elif report_type == 'bincard':
         part_id = request.args.get('part_id')
@@ -678,14 +678,14 @@ def export_csv(report_type):
         total_amount = 0
         for sale in sales:
             total = sale.price * sale.quantity
-            row = f'{sale.date.strftime("%Y-%m-%d")},{sale.part.name},{sale.quantity},${sale.price:.2f},${total:.2f},{sale.user.username}\n'
+            row = f'{sale.date.strftime("%Y-%m-%d")},{sale.part.name},{sale.quantity},{sale.price:.2f},{total:.2f},{sale.user.username}\n'
             buffer.write(row.encode('utf-8'))
             total_quantity += sale.quantity
             total_amount += total
         
         # Write totals
         buffer.write('\n'.encode('utf-8'))
-        buffer.write(f'Totals,,{total_quantity},,${total_amount:.2f},\n'.encode('utf-8'))
+        buffer.write(f'Totals,,{total_quantity},,{total_amount:.2f},\n'.encode('utf-8'))
         
     elif report_type == 'low_stock':
         parts = Part.query.filter(Part.stock_level < 10).all()
@@ -703,13 +703,13 @@ def export_csv(report_type):
         
     elif report_type == 'credits':
         credits = CreditPurchase.query.all()
-        buffer.write('Date,Customer,Part,Quantity,Amount,Due Date,Status\n'.encode('utf-8'))
+        buffer.write('Date,Supplier,Part,Quantity,Amount,Due Date,Status\n'.encode('utf-8'))
         total_quantity = 0
         total_amount = 0
         total_pending = 0
         for credit in credits:
             amount = credit.price * credit.quantity
-            row = f'{credit.purchase_date.strftime("%Y-%m-%d")},{credit.customer.name},{credit.part.name},{credit.quantity},${amount:.2f},{credit.due_date.strftime("%Y-%m-%d")},{credit.status}\n'
+            row = f'{credit.purchase_date.strftime("%Y-%m-%d")},{credit.supplier.name},{credit.part.name},{credit.quantity},${amount:.2f},{credit.due_date.strftime("%Y-%m-%d")},{credit.status}\n'
             buffer.write(row.encode('utf-8'))
             total_quantity += credit.quantity
             total_amount += amount
@@ -787,8 +787,8 @@ def export_pdf(report_type):
                 sale.date.strftime("%Y-%m-%d"),
                 sale.part.name,
                 str(sale.quantity),
-                f"${sale.price:.2f}",
-                f"${(sale.price * sale.quantity):.2f}",
+                f"{sale.price:.2f} NKF",
+                f"{(sale.price * sale.quantity):.2f} NKF",
                 sale.user.username
             ] for sale in sales
         ]
@@ -797,7 +797,7 @@ def export_pdf(report_type):
         total_quantity = sum(sale.quantity for sale in sales)
         total_amount = sum(sale.price * sale.quantity for sale in sales)
         data.append(['', '', '', '', '', ''])  # Empty row
-        data.append(['Totals', '', str(total_quantity), '', f"${total_amount:.2f}", ''])
+        data.append(['Totals', '', str(total_quantity), '', f"{total_amount:.2f} NKF", ''])
         
         title = "Sales Report"
     
@@ -823,11 +823,11 @@ def export_pdf(report_type):
     
     elif report_type == 'credits':
         credits = CreditPurchase.query.all()
-        headers = ['Date', 'Customer', 'Part', 'Quantity', 'Amount', 'Due Date', 'Status']
+        headers = ['Date', 'Supplier', 'Part', 'Quantity', 'Amount', 'Due Date', 'Status']
         data = [
             [
                 credit.purchase_date.strftime("%Y-%m-%d"),
-                credit.customer.name,
+                credit.supplier.name,
                 credit.part.name,
                 str(credit.quantity),
                 f"${(credit.price * credit.quantity):.2f}",
@@ -865,7 +865,7 @@ def export_pdf(report_type):
         total_pending = sum(loan.quantity for loan in loans if loan.status == 'pending')
         data.append(['', '', '', '', '', ''])  # Empty row
         data.append(['Total Items Loaned:', '', '', str(total_quantity), '', ''])
-        data.append(['Total Pending Returns:', '', '', str(total_pending), '', ''])
+        data.append(['Total Pending Loans:', '', '', str(total_pending), '', ''])
         
         title = "Loans Report"
     
@@ -878,8 +878,8 @@ def export_pdf(report_type):
                 purchase.part.name,
                 purchase.supplier.name,
                 str(purchase.quantity),
-                f"${purchase.unit_cost:.2f}",
-                f"${purchase.total_cost:.2f}",
+                f"{purchase.unit_cost:.2f} NKF",
+                f"{purchase.total_cost:.2f} NKF",
                 purchase.status
             ] for purchase in purchases
         ]
@@ -888,7 +888,7 @@ def export_pdf(report_type):
         total_quantity = sum(purchase.quantity for purchase in purchases)
         total_cost = sum(purchase.total_cost for purchase in purchases)
         data.append(['', '', '', '', '', '', ''])  # Empty row
-        data.append(['Totals', '', '', str(total_quantity), '', f"${total_cost:.2f}", ''])
+        data.append(['Totals', '', '', str(total_quantity), '', f"{total_cost:.2f} NKF", ''])
         
         title = "Purchases Report"
     

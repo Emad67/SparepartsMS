@@ -10,7 +10,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                    <h3>{{ total_revenue|nkf }}</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -19,7 +19,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3>${{ "%.2f"|format(total_expenses) }}</h3>
+                    <h3>{{ total_expenses|nkf }}</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -68,7 +68,7 @@
                             <th>Date</th>
                             <th>Type</th>
                             <th>Category</th>
-                            <th>Amount</th>
+                            <th>Total Amount</th>
                             <th>Description</th>
                             <th>Reference</th>
                             <th>Recorded By</th>
@@ -84,7 +84,9 @@
                                 </span>
                             </td>
                             <td>{{ transaction.category }}</td>
-                            <td>${{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>
+                                {{ "%.2f" | format(transaction.amount) }} NKF                                
+                            </td>
                             <td>{{ transaction.description }}</td>
                             <td>{{ transaction.reference_id }}</td>
                             <td>{{ transaction.user.username }}</td>

@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import db, Loan, Customer, Part, BinCard, WarehouseStock, Warehouse, Transaction, FinancialTransaction
+from models import db, Loan, Customer, Part, BinCard, WarehouseStock, Warehouse, Transaction, FinancialTransaction, ExchangeRate
 from datetime import datetime, timedelta
 from sqlalchemy import and_
 from utils.date_utils import parse_date_range, format_date
+from utils.template_filters import format_price_nkf
+from utils.currency import get_usd_amount
 
 loans = Blueprint('loans', __name__)
 
@@ -55,6 +57,7 @@ def add_loan():
         part_id = request.form.get('part_id')
         quantity = int(request.form.get('quantity'))
         days = int(request.form.get('days', 30))
+        price = request.form.get('price', type=float)
         
         # Check if enough total stock is available
         part = Part.query.get_or_404(part_id)
@@ -68,7 +71,8 @@ def add_loan():
             quantity=quantity,
             loan_date=datetime.utcnow(),
             due_date=datetime.utcnow() + timedelta(days=days),
-            status='active'
+            status='active',
+            price=price
         )
         
         # Add loan to get its ID
@@ -159,23 +163,29 @@ def convert_to_sale(id):
         if not data or 'price' not in data or 'warehouse_id' not in data:
             return jsonify({'error': 'Price and warehouse are required'}), 400
             
-        price = float(data['price'])
+        price_nkf = float(data['price']) # Price in NKF
         warehouse_id = int(data['warehouse_id'])
         loan = Loan.query.get_or_404(id)
         
         if loan.status != 'active':
             return jsonify({'error': 'This loan is not active'}), 400
             
+        # Convert NKF to USD using the utility function
+        try:
+            price_usd = get_usd_amount(price_nkf)
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        
         # Create sale transaction
         sale = Transaction(
             part_id=loan.part_id,
             type='sale',
             quantity=loan.quantity,
-            price=price,
+            price=price_usd,  # Store price in USD
             date=datetime.utcnow(),
             user_id=current_user.id
         )
-        
+
         # Add the sale to get its ID
         db.session.add(sale)
         db.session.flush()
@@ -187,25 +197,41 @@ def convert_to_sale(id):
         # Get the warehouse
         warehouse = Warehouse.query.get_or_404(warehouse_id)
         
+        # Update the stock level in the warehouse
+        warehouse_stock = WarehouseStock.query.filter_by(
+            warehouse_id=warehouse_id,
+            part_id=loan.part_id
+        ).first()
+
+        if not warehouse_stock or warehouse_stock.quantity < loan.quantity:
+            return jsonify({'error': 'Insufficient stock in the warehouse'}), 400
+
+        warehouse_stock.quantity -= loan.quantity
+
+
         # Create bincard entry for the sale
         bincard = BinCard(
             part_id=loan.part_id,
             transaction_type='out',
-            quantity=0,  # No additional stock movement, just status change
+            quantity=loan.quantity,  # Reflect the quantity sold
             reference_type='sale',
             reference_id=sale.id,
-            balance=loan.part.stock_level,  # Stock level remains the same
+            balance=warehouse_stock.quantity,  # Updated stock level after the sale
             user_id=current_user.id,
-            notes=f'Converted loan #{loan.id} to sale at ${price} per unit in {warehouse.name}'
+            notes=f'Converted loan #{loan.id} to sale at NKF {price_nkf:,.2f} per unit in {warehouse.name}'
         )
         
+        
+        # Calculate the total amount in NKF
+        total_amount_nkf = price_nkf * loan.quantity
+
         # Create financial transaction for the sale
-        total_amount = price * loan.quantity
         financial_transaction = FinancialTransaction(
             type='revenue',
             category='Sales',
-            amount=total_amount,
-            description=f'Loan #{loan.id} converted to sale: {loan.quantity} units at ${price} per unit in {warehouse.name}',
+            amount=total_amount_nkf,  # Total amount in NKF
+            exchange_rate=ExchangeRate.get_rate_for_date(),  # Add exchange rate
+            description=f'Loan #{loan.id} converted to sale: {loan.quantity} units at NKF {price_nkf} per unit in {warehouse.name}',
             reference_id=str(sale.id),
             user_id=current_user.id,
             date=datetime.utcnow()
@@ -241,3 +267,26 @@ def get_warehouse_stock():
     return jsonify({
         'quantity': stock.quantity if stock else 0
     })
+
+@loans.route('/loans/create', methods=['POST'])
+@login_required
+def create_loan():
+    try:
+        part_id = request.form.get('part_id', type=int)
+        part = Part.query.get_or_404(part_id)
+        
+        loan = Loan(
+            part_id=part_id,
+            price=part.price,  # Get price from the part
+            # ... other fields ...
+        )
+        
+        db.session.add(loan)
+        db.session.commit()
+        flash('Loan created successfully', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Error creating loan: ' + str(e), 'error')
+        
+    return redirect(url_for('loans.list_loans'))

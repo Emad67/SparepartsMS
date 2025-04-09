@@ -1,0 +1,13 @@
+<!-- Replace the existing admin dropdown menu section -->
+    </div>
+</li>
+{% endif %} 
+<!-- Add this inside the admin dropdown menu -->
+{% if current_user.role == 'admin' %}
+<div class="dropdown-menu" aria-labelledby="navbarDropdown">
+    // ... existing menu items ...
+    <a class="dropdown-item" href="{{ url_for('finance.list_exchange_rates') }}">Exchange Rates</a>
+    // ... existing menu items ...
+</div>
+{% endif %} 
+{% endif %} 

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, FinancialTransaction, Transaction, Purchase
+from models import db, FinancialTransaction, Transaction, Purchase, ExchangeRate
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from functools import wraps
@@ -17,6 +17,15 @@ def finance_access_required(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or current_user.role not in ['admin', 'manager']:
             flash('You need to be an admin or manager to access financial management.', 'error')
+            return redirect(url_for('dashboard.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash('You need to be an admin to access this feature.', 'error')
             return redirect(url_for('dashboard.index'))
         return f(*args, **kwargs)
     return decorated_function
@@ -43,10 +52,17 @@ def index():
         .limit(10)\
         .all()
     
+    # Add exchange rate to the context
+    current_rate = ExchangeRate.get_rate_for_date()
+    
+    net_profit = revenue - expenses
+    
     return render_template('finance/index.html',
                          total_revenue=revenue,
                          total_expenses=expenses,
-                         recent_transactions=recent_transactions)
+                         net_profit=net_profit,
+                         recent_transactions=recent_transactions,
+                         current_rate=current_rate)
 
 @finance.route('/finance/transactions')
 @login_required
@@ -88,6 +104,9 @@ def list_transactions():
 @finance_access_required
 def add_transaction():
     if request.method == 'POST':
+        # Get current exchange rate
+        current_rate = ExchangeRate.get_rate_for_date()
+        
         transaction = FinancialTransaction(
             type=request.form.get('type'),
             category=request.form.get('category'),
@@ -95,7 +114,8 @@ def add_transaction():
             description=request.form.get('description'),
             reference_id=request.form.get('reference_id'),
             date=datetime.utcnow(),
-            user_id=current_user.id
+            user_id=current_user.id,
+            exchange_rate=current_rate  # Add exchange rate
         )
         
         db.session.add(transaction)
@@ -306,6 +326,7 @@ def profit():
     revenues = []
     expenses = []
     profits = []
+    daily_profits = []
     
     # Calculate daily totals
     for date in dates:
@@ -318,6 +339,7 @@ def profit():
         revenues.append(revenue)
         expenses.append(expense)
         profits.append(profit)
+        daily_profits.append((date, revenue, expense, profit))
     
     # Calculate overall totals
     total_revenue = sum(revenues)
@@ -331,6 +353,7 @@ def profit():
                          revenues=revenues,
                          expenses=expenses,
                          profits=profits,
+                         daily_profits=daily_profits,
                          total_revenue=total_revenue,
                          total_expenses=total_expenses,
                          total_profit=total_profit)
@@ -691,3 +714,33 @@ def void_transaction(transaction_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@finance.route('/exchange-rates', methods=['GET'])
+@login_required
+@admin_required
+def list_exchange_rates():
+    rates = ExchangeRate.query.order_by(ExchangeRate.effective_from.desc()).all()
+    return render_template('finance/exchange_rates.html', rates=rates)
+
+@finance.route('/exchange-rates/add', methods=['POST'])
+@login_required
+@admin_required
+def add_exchange_rate():
+    try:
+        rate = float(request.form['rate'])
+        effective_from = datetime.strptime(request.form['effective_from'], '%Y-%m-%d')
+        
+        exchange_rate = ExchangeRate(
+            rate=rate,
+            effective_from=effective_from,
+            user_id=current_user.id
+        )
+        
+        db.session.add(exchange_rate)
+        db.session.commit()
+        
+        flash('Exchange rate updated successfully', 'success')
+        return redirect(url_for('finance.list_exchange_rates'))
+    except Exception as e:
+        flash(f'Error updating exchange rate: {str(e)}', 'error')
+        return redirect(url_for('finance.list_exchange_rates'))

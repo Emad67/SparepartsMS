@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    
+    
+    <h2 class="mb-4">Parts Disposal Records</h2>
+    
+    <div class="mb-3">
+        <a href="{{ url_for('disposals.add_disposal') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Record New Disposal
+        </a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Part Number</th>
+                    <th>Part Name</th>
+                    <th>Warehouse</th>
+                    <th>Quantity</th>
+                    <th>Cost</th>
+                    <th>Reason</th>
+                    <th>Recorded By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for disposal in disposals %}
+                <tr>
+                    <td>{{ disposal.disposal_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ disposal.part.part_number }}</td>
+                    <td>{{ disposal.part.name }}</td>
+                    <td>{{ disposal.warehouse.name }}</td>
+                    <td>{{ disposal.quantity }}</td>
+                    <td>{{ disposal.cost|nkf }}</td>
+                    <td>{{ disposal.reason }}</td>
+                    <td>{{ disposal.user.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

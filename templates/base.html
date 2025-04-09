@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -26,6 +25,11 @@
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
@@ -40,54 +44,54 @@
                 {% if current_user.is_authenticated %}
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('dashboard.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('dashboard.') %}active{% endif %}" 
                            href="{{ url_for('dashboard.index') }}">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('parts.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('parts.') %}active{% endif %}" 
                            href="{% if current_user.role == 'staff' %}{{ url_for('parts.staff_list_parts') }}{% else %}{{ url_for('parts.list_parts') }}{% endif %}">
                             <i class="bi bi-tools"></i> Parts
                         </a>
                     </li>
                     {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('categories.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('categories.') %}active{% endif %}" 
                            href="{{ url_for('categories.list_categories') }}">
                             <i class="bi bi-folder"></i> Categories
                         </a>
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('sales.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('sales.') %}active{% endif %}" 
                            href="{{ url_for('sales.list_sales') }}">
                             <i class="bi bi-cart-check"></i> Sales
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('pos.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('pos.') %}active{% endif %}" 
                            href="{{ url_for('pos.index') }}">
                             <i class="bi bi-cart4"></i> POS
                         </a>
                     </li>
                     {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('purchases.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('purchases.') %}active{% endif %}" 
                            href="{{ url_for('purchases.list_purchases') }}">
                             <i class="bi bi-cart-plus"></i> Purchases
                         </a>
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('loans.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('loans.') %}active{% endif %}" 
                            href="{{ url_for('loans.list_loans') }}">
                             <i class="bi bi-box-arrow-right"></i> Loans
                         </a>
                     </li>
                     {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('credits.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('credits.') %}active{% endif %}" 
                            href="{{ url_for('credits.list_credits') }}">
                             <i class="bi bi-credit-card"></i> Credits
                         </a>
@@ -95,7 +99,7 @@
                     {% endif %}
                     {% if current_user.role != 'staff' %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('reports.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}" 
                            href="{{ url_for('reports.index') }}">
                             <i class="bi bi-file-earmark-text"></i> Reports
                         </a>
@@ -103,18 +107,26 @@
                     {% endif %}
                     {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('finance.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('finance.') %}active{% endif %}" 
                            href="{{ url_for('finance.index') }}">
                             <i class="bi bi-cash"></i> Finance
                         </a>
                     </li>
                     {% endif %}
+                    {% if current_user.is_authenticated and current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('transfers.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('transfers.') %}active{% endif %}" 
                            href="{{ url_for('transfers.list_transfers') }}">
                             <i class="bi bi-arrow-left-right"></i> Transfers
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('disposals.') %}active{% endif %}" 
+                           href="{{ url_for('disposals.list_disposals') }}">
+                            <i class="bi bi-trash"></i> Disposal
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('messages.list_messages') }}">
                             <i class="bi bi-envelope"></i>
@@ -123,10 +135,9 @@
                     </li>
                     {% if current_user.role == 'admin' %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('admin.') %}active{% endif %}" 
-                           href="#" id="adminDropdown" role="button" 
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-gear"></i> Admin
+                            Admin
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('admin.users') }}"><i class="bi bi-people"></i> Users</a></li>
@@ -135,6 +146,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('admin.warehouses') }}"><i class="bi bi-building"></i> Warehouses</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('admin.backup_system') }}"><i class="bi bi-cloud-arrow-up"></i> Backup & Restore</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('finance.list_exchange_rates') }}">Exchange Rates</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -144,7 +156,7 @@
                         <span class="nav-link"><i class="bi bi-person-circle"></i> {{ current_user.username }}</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint.startswith('profile.') %}active{% endif %}" 
+                        <a class="nav-link {% if request.endpoint and request.endpoint.startswith('profile.') %}active{% endif %}" 
                            href="{{ url_for('profile.change_password') }}">
                             <i class="bi bi-key"></i> Change Password
                         </a>

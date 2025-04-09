@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_migrate import Migrate
-from models import db, User
+from models import db, User, ExchangeRate
 from auth import auth as auth_blueprint
 from views.dashboard import dashboard as dashboard_blueprint
 from views.parts import parts as parts_blueprint
@@ -18,6 +18,7 @@ from views.finance import finance as finance_blueprint
 from views.messages import messages
 from views.pos import pos as pos_blueprint
 from views.profile import profile as profile_blueprint
+from views.disposals import disposals as disposals_blueprint
 import os
 from flask.cli import with_appcontext
 import click
@@ -27,6 +28,7 @@ import uuid
 import sys
 from datetime import datetime
 from dotenv import load_dotenv
+from utils.template_filters import register_template_filters
 
 # Load environment variables from .env file
 load_dotenv()
@@ -119,11 +121,15 @@ def create_app():
     app.register_blueprint(messages)
     app.register_blueprint(pos_blueprint)
     app.register_blueprint(profile_blueprint)
+    app.register_blueprint(disposals_blueprint)
 
     # Add template context processor
     @app.context_processor
     def utility_processor():
-        return {'current_year': datetime.utcnow().year}
+        return {
+            'current_year': datetime.utcnow().year,
+            'ExchangeRate': ExchangeRate
+        }
 
     # Error handlers
     @app.errorhandler(404)
@@ -134,6 +140,8 @@ def create_app():
     def internal_error(error):
         db.session.rollback()
         return render_template('errors/500.html'), 500
+
+    register_template_filters(app)
 
     return app
 

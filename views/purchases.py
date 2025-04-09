@@ -1,9 +1,12 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models import db, Purchase, Part, Supplier, FinancialTransaction, BinCard, Warehouse, WarehouseStock
+from models import db, Purchase, Part, Supplier, FinancialTransaction, BinCard, Warehouse, WarehouseStock, ExchangeRate
 from datetime import datetime
 from views.utils import role_required
 from sqlalchemy.exc import SQLAlchemyError
+from utils.currency import get_nkf_amount  # Import the utility function
+from sqlalchemy.orm import joinedload
+from sqlalchemy import inspect
 
 purchases = Blueprint('purchases', __name__)
 
@@ -27,6 +30,9 @@ def add_purchase():
         total_cost = quantity * unit_cost
         invoice_number = request.form.get('invoice_number')
         
+        
+
+        # Create the purchase entry
         purchase = Purchase(
             part_id=part_id,
             supplier_id=supplier_id,
@@ -39,21 +45,16 @@ def add_purchase():
             user_id=current_user.id
         )
         
-        # Create financial transaction for the purchase
-        financial_transaction = FinancialTransaction(
-            type='expense',
-            category='purchase',
-            amount=total_cost,
-            description=f'Purchase of {quantity} units of part ID {part_id}',
-            reference_id=str(purchase.id),
-            user_id=current_user.id
-        )
+        try:
+            db.session.add(purchase)
+            db.session.commit()
+            flash('Purchase order created successfully', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating purchase order: {str(e)}', 'error')
+
         
-        db.session.add(purchase)
-        db.session.add(financial_transaction)
-        db.session.commit()
         
-        flash('Purchase order created successfully')
         return redirect(url_for('purchases.list_purchases'))
         
     parts = Part.query.all()
@@ -65,19 +66,24 @@ def add_purchase():
 @login_required
 @role_required('admin', 'manager')
 def receive_purchase(id):
+    """Mark a purchase as received and update stock and financial transactions."""
     try:
         db.session.begin_nested()  # Create a savepoint
         
         # Get purchase and part in a fresh transaction
-        purchase = Purchase.query.get_or_404(id)
+        purchase = Purchase.query.options(
+            joinedload(Purchase.part),
+            joinedload(Purchase.supplier),
+            joinedload(Purchase.warehouse)
+        ).get_or_404(id)
         part = Part.query.get_or_404(purchase.part_id)
         
-        if purchase.status != 'pending':
+        if purchase.status == 'received':
             flash('This purchase order is already processed')
             return redirect(url_for('purchases.list_purchases'))
         
         # Calculate new stock level
-        new_stock_level = part.stock_level + purchase.quantity
+        # new_stock_level = part.stock_level + purchase.quantity
         
         # Update warehouse stock
         warehouse_stock = WarehouseStock.query.filter_by(
@@ -94,7 +100,10 @@ def receive_purchase(id):
                 quantity=purchase.quantity
             )
             db.session.add(warehouse_stock)
-        
+
+         # Update part stock level
+        purchase.part.stock_level += purchase.quantity
+
         # Create bincard entry first
         bincard = BinCard(
             part_id=part.id,
@@ -102,47 +111,55 @@ def receive_purchase(id):
             quantity=purchase.quantity,
             reference_type='purchase',
             reference_id=purchase.id,
-            balance=new_stock_level,
+            balance=purchase.part.stock_level,
             user_id=current_user.id,
-            notes=f'Purchase received at ${purchase.unit_cost} per unit (Invoice #{purchase.invoice_number}) in {warehouse_stock.warehouse.name}'
+            notes=f'Purchase received at NKF {purchase.unit_cost} per unit (Invoice #{purchase.invoice_number}) in {warehouse_stock.warehouse.name}'
         )
         db.session.add(bincard)
         
-        # Update part stock level
-        part.stock_level = new_stock_level
-        
         # Update purchase status
         purchase.status = 'received'
-        purchase.received_date = datetime.utcnow()
+        db.session.add(purchase)
+        # db.session.flush()  # Ensure the status is updated in the session
+        # purchase.received_date = datetime.utcnow()
         
         # Create or update financial transaction
-        financial_transaction = FinancialTransaction.query.filter_by(
-            reference_id=str(purchase.id),
+        total_cost_nkf = purchase.total_cost  # Assuming `total_cost` is already in NKF
+        financial_transaction = FinancialTransaction(
             type='expense',
-            category='purchase'
-        ).first()
+            category='purchase',
+            amount=total_cost_nkf,
+            description=f'Purchase received: {purchase.quantity} units of {part.name} (Invoice #{purchase.invoice_number})',
+            reference_id=str(purchase.id),
+            user_id=current_user.id,
+            date=datetime.utcnow(),
+            exchange_rate=ExchangeRate.get_rate_for_date()  # Store the exchange rate used
+        )
+        db.session.add(financial_transaction)
         
-        if not financial_transaction:
-            financial_transaction = FinancialTransaction(
-                type='expense',
-                category='purchase',
-                amount=purchase.total_cost,
-                description=f'Purchase received: {purchase.quantity} units of {part.name} (#{purchase.invoice_number})',
-                reference_id=str(purchase.id),
-                user_id=current_user.id,
-                date=datetime.utcnow()
-            )
-            db.session.add(financial_transaction)
+        # Update the part's cost price based on the new purchase
+        new_cost_price = purchase.update_part_cost_price()
+        purchase.part.cost_price = new_cost_price
+        db.session.add(purchase.part)
+        flash(f"Calculated new cost price for part {purchase.part.id}: {new_cost_price}")
+        
+         # Use SQLAlchemy's set_committed_value to update the cost price
+        inspect(purchase.part).session.expire(purchase.part, ['cost_price'])
+        #purchase.part.cost_price = new_cost_price
+        #db.session.add(purchase.part)
         
         # Commit all changes
         db.session.commit()
         flash('Purchase order marked as received and stock updated successfully', 'success')
-        
+        return redirect(url_for('purchases.list_purchases'))
+
     except Exception as e:
+        # Rollback in case of an error
         db.session.rollback()
         flash(f'Error processing purchase: {str(e)}', 'error')
-        return redirect(url_for('purchases.list_purchases'))
+        
     
+    # Redirect back to the purchases list
     return redirect(url_for('purchases.list_purchases'))
 
 @purchases.route('/purchases/<int:id>/cancel', methods=['POST'])

@@ -45,7 +45,7 @@
             <div class="card">
                 <div class="card-body text-center">
                     <h5 class="card-title">Total Cost</h5>
-                    <h3>${{ "%.2f"|format(total_cost) }}</h3>
+                    <h3>{{ total_cost|nkf }}</h3>
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
             <div class="card">
                 <div class="card-body text-center">
                     <h5 class="card-title">Average Cost</h5>
-                    <h3>${{ "%.2f"|format(average_cost) }}</h3>
+                    <h3>{{ average_cost|nkf }}</h3>
                 </div>
             </div>
         </div>
@@ -90,8 +90,8 @@
                             <td>{{ purchase.part.name }}</td>
                             <td>{{ purchase.supplier.name }}</td>
                             <td>{{ purchase.quantity }}</td>
-                            <td>${{ "%.2f"|format(purchase.unit_cost) }}</td>
-                            <td>${{ "%.2f"|format(purchase.total_cost) }}</td>
+                            <td>{{ purchase.unit_cost|nkf }}</td> 
+                            <td>{{ purchase.total_cost|nkf }}</td>
                             <td>
                                 <span class="badge {% if purchase.status == 'pending' %}bg-warning
                                                  {% elif purchase.status == 'received' %}bg-success

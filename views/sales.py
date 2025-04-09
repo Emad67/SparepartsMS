@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import db, Part, Transaction, Customer, User, BinCard, FinancialTransaction
+from models import db, Part, Transaction, Customer, User, BinCard, FinancialTransaction, ExchangeRate
 from datetime import datetime
+from utils.template_filters import format_price_nkf
 
 sales = Blueprint('sales', __name__)
 
@@ -50,10 +51,11 @@ def new_sale():
             type='revenue',
             category='Sales',
             amount=total_amount,
-            description=f'Sale of {quantity} units of part ID {part_id} at ${price} per unit',
+            description=f'Sale of {quantity} units of part ID {part_id} at {format_price_nkf(price)} per unit',
             reference_id=str(sale.id),
             user_id=current_user.id,
-            date=datetime.utcnow()
+            date=datetime.utcnow(),
+            exchange_rate=ExchangeRate.get_rate_for_date()
         )
         
         # Now create bincard entry with the sale's ID
@@ -65,14 +67,14 @@ def new_sale():
             reference_id=sale.id,
             balance=part.stock_level,
             user_id=current_user.id,
-            notes=f'Sale at ${price} per unit'
+            notes=f'Sale at {format_price_nkf(price)} per unit'
         )
         
         db.session.add(bincard)
         db.session.add(financial_transaction)
         db.session.commit()
         
-        flash('Sale recorded successfully')
+        flash(f'Sale recorded successfully. Total amount: {format_price_nkf(total_amount)}', 'success')
         return redirect(url_for('sales.list_sales'))
         
     parts = Part.query.filter(Part.stock_level > 0).all()

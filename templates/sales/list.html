@@ -35,8 +35,8 @@
                     <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>{{ sale.part.name if sale.part else 'N/A' }}</td>
                     <td>{{ sale.quantity }}</td>
-                    <td>${{ "%.2f"|format(sale.price) }}</td>
-                    <td>${{ "%.2f"|format(sale.price * sale.quantity) }}</td>
+                    <td>{{ "%.2f" | format( sale.price) }} NKF</td>
+                    <td>{{ "%.2f" | format( sale.price * sale.quantity) }} NKF</td>
                     <td>{{ sale.user.username if sale.user else 'N/A' }}</td>
                 </tr>
                 {% endfor %}

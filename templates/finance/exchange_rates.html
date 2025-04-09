@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Exchange Rates Management</h2>
+    
+    <!-- Add New Rate Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Add New Exchange Rate</h5>
+            <form method="POST" action="{{ url_for('finance.add_exchange_rate') }}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="rate" class="form-label">USD to NKF Rate</label>
+                            <input type="number" class="form-control" id="rate" name="rate" 
+                                   step="0.0001" min="0" required>
+                            <small class="form-text text-muted">Enter how many NKF equals 1 USD</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="effective_from" class="form-label">Effective From</label>
+                            <input type="date" class="form-control" id="effective_from" 
+                                   name="effective_from" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Rate</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Exchange Rate History -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Exchange Rate History</h5>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Effective From</th>
+                        <th>Rate (USD to NKF)</th>
+                        <th>Added By</th>
+                        <th>Added On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rate in rates %}
+                    <tr>
+                        <td>{{ rate.effective_from.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ "%.4f"|format(rate.rate) }}</td>
+                        <td>{{ rate.user.username }}</td>
+                        <td>{{ rate.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

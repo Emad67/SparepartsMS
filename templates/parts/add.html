@@ -5,6 +5,10 @@
     <h2 class="mb-4">Add New Part</h2>
     
     <form method="POST" enctype="multipart/form-data" id="addPartForm">
+        <div class="text-end mb-3">
+            <button type="submit" class="btn btn-primary">Add Part</button>
+            <a href="{{ url_for('parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
+        </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
@@ -39,13 +43,18 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="model" class="form-label">Model</label>
-                    <input type="text" class="form-control" id="model" name="model">
+                    <label for="code" class="form-label">Code</label>
+                    <input type="text" class="form-control" id="code" name="code">
                 </div>
                 
                 <div class="mb-3">
-                    <label for="make" class="form-label">Make</label>
-                    <input type="text" class="form-control" id="make" name="make">
+                    <label for="substitute_part_number" class="form-label">Substitute Part Number</label>
+                    <input type="text" class="form-control" id="substitute_part_number" name="substitute_part_number">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="min_stock" class="form-label">Minimum Stock Level</label>
+                    <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="0">
                 </div>
                 
                 <div class="mb-3">
@@ -53,10 +62,6 @@
                     <input type="text" class="form-control" id="color" name="color" placeholder="e.g. Red, Blue, Black">
                 </div>
                 
-                <div class="mb-3">
-                    <label for="min_stock" class="form-label">Minimum Stock Level</label>
-                    <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="0">
-                </div>
             </div>
             
             <div class="col-md-6">
@@ -148,7 +153,17 @@
                     <label for="image" class="form-label">Image</label>
                     <input type="file" class="form-control" id="image" name="image" accept="image/*">
                 </div>
+                <div class="mb-3">
+                    <label for="barcode" class="form-label">Barcode</label>
+                    <input type="text" class="form-control" id="barcode" name="barcode" placeholder="Leave blank to auto-generate">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="warranty_period" class="form-label">Warranty Period (Months)</label>
+                    <input type="number" class="form-control" id="warranty_period" name="warranty_period" min="0" placeholder="e.g. 12">
+                </div>
             </div>
+            
         </div>
         
         <div class="row mt-3">
@@ -187,8 +202,6 @@
             </div>
         </div>
         
-        <button type="submit" class="btn btn-primary">Add Part</button>
-        <a href="{{ url_for('parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 {% endblock %}
@@ -229,4 +242,21 @@ $(document).ready(function() {
     });
 });
 </script>
+
+{% if is_staff %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure price fields stay disabled for staff
+    const priceFields = ['min_price', 'max_price', 'cost_price'];
+    priceFields.forEach(field => {
+        const element = document.getElementById(field);
+        if (element) {
+            element.disabled = true;
+            element.readOnly = true;
+            element.style.backgroundColor = '#e9ecef';
+        }
+    });
+});
+</script>
+{% endif %}
 {% endblock %} 

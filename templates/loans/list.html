@@ -48,6 +48,8 @@
                     <th>Customer</th>
                     <th>Part</th>
                     <th>Quantity</th>
+                    <th>Amount</th>
+                    <th>Total Amount</th>
                     <th>Loan Date</th>
                     <th>Due Date</th>
                     <th>Status</th>
@@ -61,6 +63,14 @@
                     <td>{{ loan.customer.name }}</td>
                     <td>{{ loan.part.part_number }} - {{ loan.part.name }}</td>
                     <td>{{ loan.quantity }}</td>
+                    <td>
+                        {% if loan.part and loan.part.cost_price %}
+                            {{ loan.part.cost_price|nkf }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>{% if loan.part.cost_price is not none %}{{ (loan.part.cost_price * loan.quantity)|nkf }}{% else %}N/A{% endif %}</td>
                     <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
                     <td>
@@ -128,7 +138,7 @@
                     <div class="mb-3">
                         <label for="sale_price" class="form-label">Sale Price per Unit</label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                            <span class="input-group-text">NKF</span>
                             <input type="number" class="form-control" id="sale_price" step="0.01" min="0" required>
                         </div>
                     </div>

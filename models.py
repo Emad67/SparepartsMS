@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime
 from sqlalchemy import event
+from flask import current_app
 
 db = SQLAlchemy()
 
@@ -61,8 +62,8 @@ class Part(db.Model):
     part_number = db.Column(db.String(50), unique=True, nullable=False)
     name = db.Column(db.String(200), nullable=False)
     location = db.Column(db.String(100))
-    model = db.Column(db.String(100))
-    make = db.Column(db.String(100))
+    code = db.Column(db.String(100))  # Changed from model
+    substitute_part_number = db.Column(db.String(100))  # Changed from make
     stock_level = db.Column(db.Integer, default=0)
     min_stock = db.Column(db.Integer, default=0)  # Added minimum stock level
     weight = db.Column(db.Float)
@@ -88,20 +89,33 @@ class Part(db.Model):
         total_cost = 0
         total_quantity = 0
         
+        current_app.logger.info(f"\nCalculating cost price for Part ID: {self.id}")
+        current_app.logger.info(f"Initial cost price: {self.cost_price}")
+        
         # Include regular purchases
+        current_app.logger.info("\nRegular Purchases:")
         for purchase in self.purchases:
+            current_app.logger.info(f"Purchase ID: {purchase.id}, Status: {purchase.status}, Unit Cost: {purchase.unit_cost}, Quantity: {purchase.quantity}")
             if purchase.status == 'received':
                 total_cost += purchase.unit_cost * purchase.quantity
                 total_quantity += purchase.quantity
         
         # Include credit purchases
+        current_app.logger.info("\nCredit Purchases:")
         for credit_purchase in self.credit_purchases:
-            if credit_purchase.status in ['pending', 'paid']:
+            current_app.logger.info(f"Credit Purchase ID: {credit_purchase.id}, Status: {credit_purchase.status}, Price: {credit_purchase.price}, Quantity: {credit_purchase.quantity}")
+            if credit_purchase.status == 'paid':
                 total_cost += credit_purchase.price * credit_purchase.quantity
                 total_quantity += credit_purchase.quantity
         
         if total_quantity > 0:
             self.cost_price = total_cost / total_quantity
+            current_app.logger.info(f"\nCalculation Results:")
+            current_app.logger.info(f"Total cost: {total_cost}")
+            current_app.logger.info(f"Total quantity: {total_quantity}")
+            current_app.logger.info(f"New cost price: {self.cost_price}")
+        else:
+            current_app.logger.info("\nNo valid purchases found for cost price calculation")
         
         return self.cost_price
 
@@ -128,6 +142,7 @@ class Loan(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
     quantity = db.Column(db.Integer)
+    price = db.Column(db.Float)
     loan_date = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.DateTime)
     returned_date = db.Column(db.DateTime)
@@ -140,6 +155,7 @@ class CreditPurchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
     purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -149,6 +165,7 @@ class CreditPurchase(db.Model):
     # Add relationships
     supplier = db.relationship('Supplier', backref='credit_purchases')
     part = db.relationship('Part', backref='credit_purchases')
+    warehouse = db.relationship('Warehouse', backref='credit_purchases')
 
     def update_part_cost_price(self):
         """Update the part's cost price after credit purchase status changes"""
@@ -246,11 +263,14 @@ class Purchase(db.Model):
     supplier = db.relationship('Supplier', backref='purchases')
     warehouse = db.relationship('Warehouse', backref='purchases')
     user = db.relationship('User', backref='purchases')
+    
 
     def update_part_cost_price(self):
         """Update the part's cost price after purchase status changes"""
-        if self.part and self.status == 'received':
+        if self.part:
+            print(f"Updating cost price for part: {self.part.name}")
             self.part.calculate_cost_price()
+            #db.session.add(self.part)
 
 class FinancialTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -269,11 +289,22 @@ class FinancialTransaction(db.Model):
     voided_at = db.Column(db.DateTime)
     void_reference_id = db.Column(db.Integer, db.ForeignKey('financial_transaction.id'))  # Reference to the reversing entry
     
+    # Add new field for storing the exchange rate at time of transaction
+    exchange_rate = db.Column(db.Float)
+    
     # Relationships
     user = db.relationship('User', backref='financial_transactions', foreign_keys=[user_id])
     voided_by = db.relationship('User', backref='voided_transactions', foreign_keys=[voided_by_id])
     void_reference = db.relationship('FinancialTransaction', backref='original_transaction',
                                    remote_side=[id], foreign_keys=[void_reference_id])
+    
+    def get_amount_ern(self):
+        """Get amount in ERN using historical exchange rate"""
+        return self.amount * (self.exchange_rate or ExchangeRate.get_rate_for_date(self.date))
+    
+    @property
+    def amount_ern(self):
+        return self.get_amount_ern()
 
 class BinCard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -310,10 +341,45 @@ class Message(db.Model):
     def __repr__(self):
         return f'<Message {self.id}: {self.subject}>'
 
+class Disposal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
+    quantity = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    disposal_date = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    cost = db.Column(db.Float)  # Total cost of disposed items
+    
+    # Relationships
+    part = db.relationship('Part', backref='disposals')
+    warehouse = db.relationship('Warehouse', backref='disposals')
+    user = db.relationship('User', backref='disposals')
+
+class ExchangeRate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rate = db.Column(db.Float, nullable=False)
+    effective_from = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='exchange_rates')
+    
+    @staticmethod
+    def get_rate_for_date(date=None):
+        if date is None:
+            date = datetime.utcnow()
+        rate = ExchangeRate.query.filter(
+            ExchangeRate.effective_from <= date
+        ).order_by(ExchangeRate.effective_from.desc()).first()
+        return rate.rate if rate else 15.0  # Default rate
+
 # Add SQLAlchemy event listeners
 @event.listens_for(Purchase, 'after_insert')
 @event.listens_for(Purchase, 'after_update')
 def purchase_cost_price_update(mapper, connection, target):
+    print(f"Event triggered for Purchase ID: {target.id}, Status: {target.status}")
     target.update_part_cost_price()
 
 @event.listens_for(CreditPurchase, 'after_insert')

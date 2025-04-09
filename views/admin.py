@@ -96,15 +96,15 @@ def edit_warehouse(warehouse_id):
 def delete_warehouse(warehouse_id):
     warehouse = Warehouse.query.get_or_404(warehouse_id)
     
-    try:
-        # Delete associated warehouse stock records first
-        WarehouseStock.query.filter_by(warehouse_id=warehouse_id).delete()
-        db.session.delete(warehouse)
-        db.session.commit()
-        flash('Warehouse deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting warehouse: {str(e)}', 'error')
+    # try:
+    #     # Delete associated warehouse stock records first
+    #     WarehouseStock.query.filter_by(warehouse_id=warehouse_id).delete()
+    #     db.session.delete(warehouse)
+    #     db.session.commit()
+    #     flash('Warehouse deleted successfully', 'success')
+    # except Exception as e:
+    #     db.session.rollback()
+    #     flash(f'Error deleting warehouse: {str(e)}', 'error')
         
     return redirect(url_for('admin.warehouses'))
 

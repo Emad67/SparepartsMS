@@ -46,7 +46,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Sales</h5>
-                    <h2>${{ "%.2f"|format(total_sales) }}</h2>
+                    <h3>{{ "%.2f" | format( total_sales ) }} NKF</h3>
                 </div>
             </div>
         </div>
@@ -54,7 +54,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Items Sold</h5>
-                    <h2>{{ total_items }}</h2>
+                    <h3>{{ total_items }}</h3>
                 </div>
             </div>
         </div>
@@ -62,7 +62,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5 class="card-title">Average Sale</h5>
-                    <h2>${{ "%.2f"|format(average_sale) }}</h2>
+                    <h3>{{ "%.2f" | format( average_sale ) }} NKF</h3>
                 </div>
             </div>
         </div>
@@ -96,8 +96,8 @@
                         <td>{{ sale.part.part_number }}</td>
                         <td>{{ sale.part.name }}</td>
                         <td>{{ sale.quantity }}</td>
-                        <td>${{ "%.2f"|format(sale.price) }}</td>
-                        <td>${{ "%.2f"|format(sale.price * sale.quantity) }}</td>
+                        <td>{{ "%.2f" | format( sale.price ) }} NKF</td>
+                        <td>{{ "%.2f" | format( sale.price * sale.quantity) }} NKF</td>
                         <td>{{ sale.user.username }}</td>
                     </tr>
                     {% endfor %}

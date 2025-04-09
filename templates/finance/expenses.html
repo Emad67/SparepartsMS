@@ -40,7 +40,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h2 class="card-text">${{ "%.2f"|format(total_expenses) }}</h2>
+                    <h2 class="card-text">{{ total_expenses|nkf }}</h2>
                 </div>
             </div>
         </div>
@@ -104,7 +104,7 @@
                         <tr>
                             <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
                             <td>{{ expense.category }}</td>
-                            <td>${{ "%.2f"|format(expense.amount) }}</td>
+                            <td>{{ "%.2f" | format( expense.amount) }} NKF</td>
                             <td>{{ expense.description }}</td>
                             <td>{{ expense.reference_id }}</td>
                             <td>{{ expense.user.username }}</td>

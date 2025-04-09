@@ -10,7 +10,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <h3>${{ "%.2f"|format(total_revenue) }}</h3>
+                    <h3>{{ total_revenue|nkf }}</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -19,7 +19,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3>${{ "%.2f"|format(total_expenses) }}</h3>
+                    <h3>{{ total_expenses|nkf }}</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
             <div class="card {% if profit >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
                 <div class="card-body">
                     <h5 class="card-title">Net Profit/Loss</h5>
-                    <h3>${{ "%.2f"|format(profit) }}</h3>
+                    <h3>{{ profit|nkf }}</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>

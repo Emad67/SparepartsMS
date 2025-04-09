@@ -11,7 +11,7 @@
                 <div class="card bg-primary text-white">
                     <div class="card-body">
                         <h5 class="card-title">Sales Today</h5>
-                        <h2 class="card-text">${{ "%.2f"|format(total_parts) }}</h2>
+                        <h2 class="card-text">{{ total_parts|nkf }}</h2>
                     </div>
                 </div>
             </a>
