@@ -1,3 +1,4 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_security import UserMixin, RoleMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -96,7 +97,7 @@ class Part(db.Model):
         current_app.logger.info("\nRegular Purchases:")
         for purchase in self.purchases:
             current_app.logger.info(f"Purchase ID: {purchase.id}, Status: {purchase.status}, Unit Cost: {purchase.unit_cost}, Quantity: {purchase.quantity}")
-            if purchase.status == 'received':
+            if purchase.status != 'pending':
                 total_cost += purchase.unit_cost * purchase.quantity
                 total_quantity += purchase.quantity
         
@@ -114,6 +115,7 @@ class Part(db.Model):
             current_app.logger.info(f"Total cost: {total_cost}")
             current_app.logger.info(f"Total quantity: {total_quantity}")
             current_app.logger.info(f"New cost price: {self.cost_price}")
+            db.session.add(self)  # Ensure the part is added to the session
         else:
             current_app.logger.info("\nNo valid purchases found for cost price calculation")
         
@@ -377,9 +379,8 @@ class ExchangeRate(db.Model):
 
 # Add SQLAlchemy event listeners
 @event.listens_for(Purchase, 'after_insert')
-@event.listens_for(Purchase, 'after_update')
 def purchase_cost_price_update(mapper, connection, target):
-    print(f"Event triggered for Purchase ID: {target.id}, Status: {target.status}")
+    print(f"Event triggered for new Purchase ID: {target.id}")
     target.update_part_cost_price()
 
 @event.listens_for(CreditPurchase, 'after_insert')

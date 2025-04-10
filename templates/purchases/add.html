@@ -4,17 +4,17 @@
 <div class="container">
     <h2 class="mb-4">New Purchase Order</h2>
     
-    <form method="POST">
+    <form method="POST" action="{{ url_for('purchases.add_purchase') }}">
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
                     <label for="part_id" class="form-label">Part</label>
                     <select class="form-select" id="part_id" name="part_id" required>
-                        <option value="">Search Part by Number or Name</option>
+                        <option value="">Select a part</option>
                         {% for part in parts %}
                         <option value="{{ part.id }}" 
                                 data-part-number="{{ part.part_number }}"
-                                data-part-name="{{ part.name }}" >
+                                data-part-name="{{ part.name }}">
                             {{ part.part_number }} - {{ part.name }}
                         </option>
                         {% endfor %}
@@ -24,15 +24,9 @@
                 <div class="mb-3">
                     <label for="supplier_id" class="form-label">Supplier</label>
                     <select class="form-select" id="supplier_id" name="supplier_id" required>
-                        <option value="">Search Supplier</option>
+                        <option value="">Select a supplier</option>
                         {% for supplier in suppliers %}
-                        <option value="{{ supplier.id }}" 
-                                data-contact="{{ supplier.contact_person }}"
-                                data-email="{{ supplier.email }}"
-                                data-phone="{{ supplier.phone }}">
-                            {{ supplier.name }}
-                            {% if supplier.contact_person %} ({{ supplier.contact_person }}){% endif %}
-                        </option>
+                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -50,14 +44,14 @@
                 
                 <div class="mb-3">
                     <label for="quantity" class="form-label">Quantity</label>
-                    <input type="number" class="form-control" name="quantity" min="1" required>
+                    <input type="number" class="form-control" id="quantity" name="quantity" required min="1">
                 </div>
             </div>
             
             <div class="col-md-6">
                 <div class="mb-3">
-                    <label for="unit_cost" class="form-label">Unit Cost</label>
-                    <input type="number" class="form-control" name="unit_cost" step="0.01" min="0" required>
+                    <label for="unit_price" class="form-label">Unit Price</label>
+                    <input type="number" class="form-control" id="unit_price" name="unit_price" required min="0" step="0.01">
                 </div>
                 
                 <div class="mb-3">
@@ -67,7 +61,7 @@
                 
                 <div class="mb-3">
                     <label class="form-label">Total Cost</label>
-                    <div class="form-control bg-light">$<span id="total_cost">0.00</span></div>
+                    <input type="number" class="form-control" id="total_cost" name="total_cost" readonly>
                 </div>
             </div>
         </div>
@@ -89,95 +83,21 @@ $(document).ready(function() {
     // Initialize Select2 for part selection
     $('#part_id').select2({
         placeholder: 'Search Part by Number or Name',
-        width: '100%',
-        matcher: function(params, data) {
-            // If there are no search terms, return all of the data
-            if ($.trim(params.term) === '') {
-                return data;
-            }
-
-            // Search in both part number and name
-            const partData = $(data.element);
-            const partNumber = (partData.data('part-number')|| '').toLowerCase().trim();
-            const partName = (partData.data('part-name') || '').toLowerCase().trim();
-            const searchTerm = params.term.toLowerCase().trim() ;
-            const text = (data.text || '').toLowerCase().trim();
-
-          // Check if the search term matches any of the target strings
-        if (text.includes(searchTerm) ||
-            partNumber.includes(searchTerm) || 
-            partName.includes(searchTerm)) {
-            return data;
-        }
-
-            return null;
-        },
-        templateResult: function(data) {
-            if (!data.id) return data.text;
-            
-            const $option = $(data.element);
-            const partNumber = $option.data('part-number');
-            const partName = $option.data('part-name');
-            
-            let html = `<div><strong>${data.text}</strong>`;
-            if (partNumber) html += `<br><small>part Number: ${partNumber}</small>`;
-            if (partName) html += `<br><small>part Name: ${partName}</small>`;
-            html += '</div>';
-            
-            return $(html);
-        }
+        width: '100%'
     });
 
     // Initialize Select2 for supplier selection
     $('#supplier_id').select2({
-        placeholder: 'Search Supplier by Name or Contact Person',
-        width: '100%',
-        matcher: function(params, data) {
-            if ($.trim(params.term) === '') {
-                return data;
-            }
-
-            // Search in supplier name and contact person
-            const supplierData = $(data.element);
-            const contact = supplierData.data('contact') || '';
-            const email = supplierData.data('email') || '';
-            const phone = supplierData.data('phone') || '';
-            const searchTerm = params.term.toLowerCase();
-            const text = data.text.toLowerCase();
-
-            if (text.indexOf(searchTerm) > -1 || 
-                contact.toLowerCase().indexOf(searchTerm) > -1 ||
-                email.toLowerCase().indexOf(searchTerm) > -1 ||
-                phone.indexOf(searchTerm) > -1) {
-                return data;
-            }
-
-            return null;
-        },
-        templateResult: function(data) {
-            if (!data.id) return data.text;
-            
-            const $option = $(data.element);
-            const contact = $option.data('contact');
-            const email = $option.data('email');
-            const phone = $option.data('phone');
-            
-            let html = `<div><strong>${data.text}</strong>`;
-            if (contact) html += `<br><small>Contact: ${contact}</small>`;
-            if (email) html += `<br><small>Email: ${email}</small>`;
-            if (phone) html += `<br><small>Phone: ${phone}</small>`;
-            html += '</div>';
-            
-            return $(html);
-        }
+        placeholder: 'Search Supplier by Name',
+        width: '100%'
     });
 
-    // Calculate total cost
-    $('input[name="quantity"], input[name="unit_cost"]').on('input', function() {
-        var quantity = $('input[name="quantity"]').val() || 0;
-        var unitCost = $('input[name="unit_cost"]').val() || 0;
-        var totalCost = quantity * unitCost;
-        $('#total_cost').text(totalCost.toFixed(2));
+    // Calculate total cost when quantity or unit price changes
+    $('#quantity, #unit_price').on('input', function() {
+        const quantity = parseFloat($('#quantity').val()) || 0;
+        const unitPrice = parseFloat($('#unit_price').val()) || 0;
+        const totalCost = quantity * unitPrice;
+        $('#total_cost').val(totalCost.toFixed(2));
     });
 });
 </script>

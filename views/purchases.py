@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from utils.currency import get_nkf_amount  # Import the utility function
 from sqlalchemy.orm import joinedload
 from sqlalchemy import inspect
+from flask import current_app
 
 purchases = Blueprint('purchases', __name__)
 
@@ -76,14 +77,18 @@ def receive_purchase(id):
             joinedload(Purchase.supplier),
             joinedload(Purchase.warehouse)
         ).get_or_404(id)
-        part = Part.query.get_or_404(purchase.part_id)
         
+        if not purchase.part:
+            raise ValueError(f"Part not found for purchase {id}")
+            
+        part = purchase.part  # Use the already loaded part
+        
+        if not purchase.warehouse:
+            raise ValueError(f"Warehouse not found for purchase {id}")
+            
         if purchase.status == 'received':
             flash('This purchase order is already processed')
             return redirect(url_for('purchases.list_purchases'))
-        
-        # Calculate new stock level
-        # new_stock_level = part.stock_level + purchase.quantity
         
         # Update warehouse stock
         warehouse_stock = WarehouseStock.query.filter_by(
@@ -91,17 +96,17 @@ def receive_purchase(id):
             part_id=purchase.part_id
         ).first()
         
-        if warehouse_stock:
-            warehouse_stock.quantity += purchase.quantity
-        else:
+        if not warehouse_stock:
             warehouse_stock = WarehouseStock(
                 warehouse_id=purchase.warehouse_id,
                 part_id=purchase.part_id,
                 quantity=purchase.quantity
             )
             db.session.add(warehouse_stock)
+        else:
+            warehouse_stock.quantity += purchase.quantity
 
-         # Update part stock level
+        # Update part stock level
         purchase.part.stock_level += purchase.quantity
 
         # Create bincard entry first
@@ -113,15 +118,13 @@ def receive_purchase(id):
             reference_id=purchase.id,
             balance=purchase.part.stock_level,
             user_id=current_user.id,
-            notes=f'Purchase received at NKF {purchase.unit_cost} per unit (Invoice #{purchase.invoice_number}) in {warehouse_stock.warehouse.name}'
+            notes=f'Purchase received at NKF {purchase.unit_cost} per unit (Invoice #{purchase.invoice_number}) in {purchase.warehouse.name}'
         )
         db.session.add(bincard)
         
         # Update purchase status
         purchase.status = 'received'
         db.session.add(purchase)
-        # db.session.flush()  # Ensure the status is updated in the session
-        # purchase.received_date = datetime.utcnow()
         
         # Create or update financial transaction
         total_cost_nkf = purchase.total_cost  # Assuming `total_cost` is already in NKF
@@ -138,15 +141,14 @@ def receive_purchase(id):
         db.session.add(financial_transaction)
         
         # Update the part's cost price based on the new purchase
-        new_cost_price = purchase.update_part_cost_price()
+        new_cost_price = purchase.part.calculate_cost_price()
+        
+        # Use SQLAlchemy's set_committed_value to update the cost price
+        inspect(purchase.part).session.expire(purchase.part, ['cost_price'])
         purchase.part.cost_price = new_cost_price
         db.session.add(purchase.part)
-        flash(f"Calculated new cost price for part {purchase.part.id}: {new_cost_price}")
-        
-         # Use SQLAlchemy's set_committed_value to update the cost price
-        inspect(purchase.part).session.expire(purchase.part, ['cost_price'])
-        #purchase.part.cost_price = new_cost_price
-        #db.session.add(purchase.part)
+        db.session.flush()  # Force the update to be written to the database
+        flash(f"Calculated new cost price for part in receive_purchase method {purchase.part.id}: {new_cost_price}")
         
         # Commit all changes
         db.session.commit()
@@ -156,9 +158,14 @@ def receive_purchase(id):
     except Exception as e:
         # Rollback in case of an error
         db.session.rollback()
+        current_app.logger.error(f"Error in receive_purchase: {str(e)}")
+        current_app.logger.error(f"Purchase ID: {id}")
+        current_app.logger.error(f"Purchase object: {purchase}")
+        if purchase:
+            current_app.logger.error(f"Purchase part: {purchase.part}")
+            current_app.logger.error(f"Purchase warehouse: {purchase.warehouse}")
         flash(f'Error processing purchase: {str(e)}', 'error')
         
-    
     # Redirect back to the purchases list
     return redirect(url_for('purchases.list_purchases'))
 

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, FinancialTransaction, Transaction, Purchase, ExchangeRate
+from models import db, FinancialTransaction, Transaction, Purchase, ExchangeRate, WarehouseStock, BinCard, CreditPurchase
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from functools import wraps
@@ -668,7 +668,7 @@ def void_transactions():
 @login_required
 @finance_access_required
 def void_transaction(transaction_id):
-    """Void a financial transaction"""
+    """Void a financial transaction and update all related records"""
     try:
         data = request.json
         if not data or 'reason' not in data:
@@ -679,6 +679,9 @@ def void_transaction(transaction_id):
         # Check if already voided
         if transaction.voided:
             return jsonify({'error': 'Transaction is already voided'}), 400
+        
+        # Start a transaction to ensure all updates are atomic
+        db.session.begin_nested()
         
         # Create reversing entry
         reversing_entry = FinancialTransaction(
@@ -704,11 +707,82 @@ def void_transaction(transaction_id):
         # Link the transactions
         transaction.void_reference_id = reversing_entry.id
         
+        # Update related records based on transaction type and reference
+        if transaction.reference_id:
+            # Handle purchase-related transactions
+            if transaction.category == 'purchase':
+                purchase = Purchase.query.filter_by(id=transaction.reference_id).first()
+                if purchase:
+                    # Update purchase status
+                    purchase.status = 'cancelled'
+                    
+                    # Update warehouse stock
+                    warehouse_stock = WarehouseStock.query.filter_by(
+                        warehouse_id=purchase.warehouse_id,
+                        part_id=purchase.part_id
+                    ).first()
+                    if warehouse_stock:
+                        warehouse_stock.quantity -= purchase.quantity
+                    
+                    # Update part stock level
+                    purchase.part.stock_level -= purchase.quantity
+                    
+                    # Create void bincard entry
+                    bincard = BinCard(
+                        part_id=purchase.part_id,
+                        transaction_type='out',
+                        quantity=purchase.quantity,
+                        reference_type='purchase_void',
+                        reference_id=purchase.id,
+                        balance=purchase.part.stock_level,
+                        user_id=current_user.id,
+                        notes=f'Purchase voided: {data["reason"]}'
+                    )
+                    db.session.add(bincard)
+                    
+                    # Update part cost price
+                    purchase.part.calculate_cost_price()
+            
+            # Handle credit purchase-related transactions
+            elif transaction.category == 'credit_purchase':
+                credit = CreditPurchase.query.filter_by(id=transaction.reference_id).first()
+                if credit:
+                    # Update credit status
+                    credit.status = 'cancelled'
+                    
+                    # Update warehouse stock
+                    warehouse_stock = WarehouseStock.query.filter_by(
+                        warehouse_id=credit.warehouse_id,
+                        part_id=credit.part_id
+                    ).first()
+                    if warehouse_stock:
+                        warehouse_stock.quantity -= credit.quantity
+                    
+                    # Update part stock level
+                    credit.part.stock_level -= credit.quantity
+                    
+                    # Create void bincard entry
+                    bincard = BinCard(
+                        part_id=credit.part_id,
+                        transaction_type='out',
+                        quantity=credit.quantity,
+                        reference_type='credit_purchase_void',
+                        reference_id=credit.id,
+                        balance=credit.part.stock_level,
+                        user_id=current_user.id,
+                        notes=f'Credit purchase voided: {data["reason"]}'
+                    )
+                    db.session.add(bincard)
+                    
+                    # Update part cost price
+                    credit.part.calculate_cost_price()
+        
+        # Commit all changes
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Transaction voided successfully'
+            'message': 'Transaction voided successfully and all related records updated'
         })
         
     except Exception as e:
