@@ -10,7 +10,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <h3>{{ "%.2f" | format( total_revenue) }} NKF</h3>
+                    <h3>{{ "{:,.2f}".format( total_revenue) }} NKF</h3>
                     <p class="card-text">Last 30 days</p>
                 </div>
             </div>
@@ -19,7 +19,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3>{{ "%.2f" | format( total_expenses) }} NKF</h3>
+                    <h3>{{ "{:,.2f}".format( total_expenses) }} NKF</h3>
                     <p class="card-text">Last 30 days</p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5 class="card-title">Net Profit</h5>
-                    <h3>{{ "%.2f" | format( net_profit) }} NKF</h3>
+                    <h3>{{ "{:,.2f}".format( net_profit) }} NKF</h3>
                     <p class="card-text">Last 30 days</p>
                 </div>
             </div>
@@ -72,6 +72,9 @@
                         </a>
                         <a href="{{ url_for('finance.profit') }}" class="list-group-item list-group-item-action">
                             <i class="bi bi-pie-chart"></i> Profit & Loss Report
+                        </a>
+                        <a href="{{ url_for('finance.report') }}" class="list-group-item list-group-item-action">
+                            <i class="bi bi-file-earmark-text"></i> Full Finance Report
                         </a>
                     </div>
                 </div>
@@ -196,7 +199,7 @@
                                 </span>
                             </td>
                             <td>{{ transaction.category }}</td>
-                            <td>{{ "%.2f" | format( transaction.amount) }} NKF</td>
+                            <td>{{ "{:,.2f}".format( transaction.amount) }} NKF</td>
                             <td>{{ transaction.description }}</td>
                         </tr>
                         {% endfor %}

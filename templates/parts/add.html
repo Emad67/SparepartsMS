@@ -5,21 +5,53 @@
     <h2 class="mb-4">Add New Part</h2>
     
     <form method="POST" enctype="multipart/form-data" id="addPartForm">
+        {{ form.csrf_token }}
         <div class="text-end mb-3">
             <button type="submit" class="btn btn-primary">Add Part</button>
-            <a href="{{ url_for('parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('parts.staff_list_parts' if is_staff else 'parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
         </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
+                    <label for="manufacturer" class="form-label">Manufacturer *</label>
+                    {{ form.manufacturer(class="form-select", id="manufacturer") }}
+                    {% if form.manufacturer.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.manufacturer.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="quality_level" class="form-label">Quality Level *</label>
+                    {{ form.quality_level(class="form-select", id="quality_level") }}
+                    {% if form.quality_level.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.quality_level.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
                     <label for="part_number" class="form-label">Part Number *</label>
-                    <input type="text" class="form-control" id="part_number" name="part_number" required>
+                    {{ form.part_number(class="form-control", id="part_number") }}
                     <div class="invalid-feedback">This part number already exists</div>
                 </div>
                 
                 <div class="mb-3">
                     <label for="name" class="form-label">Name *</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
+                    {{ form.name(class="form-control", id="name") }}
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <div class="mb-3">
@@ -39,12 +71,12 @@
                 
                 <div class="mb-3">
                     <label for="location" class="form-label">Location in Warehouse</label>
-                    <input type="text" class="form-control" id="location" name="location" placeholder="e.g. Shelf A-12">
+                    {{ form.location(class="form-control", id="location", placeholder="e.g. Shelf A-12") }}
                 </div>
                 
                 <div class="mb-3">
                     <label for="code" class="form-label">Code</label>
-                    <input type="text" class="form-control" id="code" name="code">
+                    <input type="text" class="form-control" id="code" name="code" readonly>
                 </div>
                 
                 <div class="mb-3">
@@ -80,7 +112,7 @@
                     <select class="form-select" id="supplier_id" name="supplier_id">
                         <option value="">Select Supplier</option>
                         {% for supplier in suppliers %}
-                        <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        <option value="{{ supplier.id }}" {% if loop.first %}selected{% endif %}>{{ supplier.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -90,7 +122,7 @@
                     <select class="form-select" id="unit" name="unit" required>
                         <option value="">Select Unit</option>
                         <optgroup label="Count/Quantity">
-                            <option value="piece">Piece</option>
+                            <option value="piece" selected>Piece</option>
                             <option value="set">Set</option>
                             <option value="box">Box</option>
                         </optgroup>
@@ -142,9 +174,29 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="cost_price" class="form-label">Cost Price</label>
-                            <input type="number" class="form-control" id="cost_price" name="cost_price" step="0.01" min="0" readonly>
+                            <label for="cost_price" class="form-label">Cost Price *</label>
+                            {{ form.cost_price(class="form-control", id="cost_price", step="0.01", min="0") }}
+                            {% if form.cost_price.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.cost_price.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <small class="form-text text-muted">Cost price will be automatically calculated based on purchases</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="selling_price" class="form-label">Selling Price *</label>
+                            {{ form.selling_price(class="form-control", id="selling_price", step="0.01", min="0") }}
+                            {% if form.selling_price.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.selling_price.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -170,7 +222,7 @@
             <div class="col-12">
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    {{ form.description(class="form-control", id="description", rows="3") }}
                 </div>
             </div>
         </div>
@@ -239,15 +291,72 @@ $(document).ready(function() {
             alert('Please fix the errors before submitting');
             return false;
         }
+        
+        // Validate required fields
+        var requiredFields = ['manufacturer', 'quality_level', 'part_number', 'name', 'warehouse', 'unit', 'cost_price', 'selling_price'];
+        var isValid = true;
+        
+        requiredFields.forEach(function(field) {
+            var element = $('#' + field);
+            if (!element.val()) {
+                element.addClass('is-invalid');
+                isValid = false;
+            } else {
+                element.removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+            return false;
+        }
     });
 });
+
+// Manufacturer and quality level codes mapping
+const manufacturerCodes = {
+    'TOYOTA': 'TO',
+    'NISSAN': 'NI',
+    'HONDA': 'HO',
+    'MITSUBISHI': 'MI',
+    'MAZDA': 'MA',
+    'SUBARU': 'SU',
+    'ISUZU': 'IS',
+    'SUZUKI': 'SZ',
+    'DAIHATSU': 'DA',
+    'HINO': 'HI'
+};
+
+const qualityCodes = {
+    'ORIGINAL': 'O',
+    'SECOND_LEVEL': 'S',
+    'THIRD_LEVEL': 'T'
+};
+
+// Update code field when manufacturer, quality level, or part number changes
+const updateCode = () => {
+    const manufacturer = document.getElementById('manufacturer').value;
+    const qualityLevel = document.getElementById('quality_level').value;
+    const partNumber = document.getElementById('part_number').value;
+    
+    if (manufacturer && qualityLevel && partNumber) {
+        const manufacturerCode = manufacturerCodes[manufacturer] || '';
+        const qualityCode = qualityCodes[qualityLevel] || '';
+        document.getElementById('code').value = `${manufacturerCode}${qualityCode}${partNumber}`;
+    }
+};
+
+document.getElementById('manufacturer').addEventListener('change', updateCode);
+document.getElementById('quality_level').addEventListener('change', updateCode);
+document.getElementById('part_number').addEventListener('input', updateCode);
 </script>
 
 {% if is_staff %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Ensure price fields stay disabled for staff
-    const priceFields = ['min_price', 'max_price', 'cost_price'];
+    const priceFields = ['min_price', 'max_price', 'cost_price', 'selling_price'];
     priceFields.forEach(field => {
         const element = document.getElementById(field);
         if (element) {

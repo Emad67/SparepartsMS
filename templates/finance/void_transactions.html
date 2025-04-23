@@ -58,7 +58,7 @@
                                 </span>
                             </td>
                             <td>{{ transaction.category }}</td>
-                            <td>NKF{{ "%.2f"|format(transaction.amount) }}</td>
+                            <td>{{ "{:,.2f}".format(transaction.amount) }} NKF</td>
                             <td>{{ transaction.description }}</td>
                             <td>{{ transaction.reference_id }}</td>
                             <td>

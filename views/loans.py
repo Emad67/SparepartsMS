@@ -171,17 +171,17 @@ def convert_to_sale(id):
             return jsonify({'error': 'This loan is not active'}), 400
             
         # Convert NKF to USD using the utility function
-        try:
-            price_usd = get_usd_amount(price_nkf)
-        except ValueError as e:
-            return jsonify({'error': str(e)}), 400
+       # try:
+       #     price_usd = get_usd_amount(price_nkf)
+       # except ValueError as e:
+       #     return jsonify({'error': str(e)}), 400
         
         # Create sale transaction
         sale = Transaction(
             part_id=loan.part_id,
             type='sale',
             quantity=loan.quantity,
-            price=price_usd,  # Store price in USD
+            price=price_nkf,  # Store price in NKF
             date=datetime.utcnow(),
             user_id=current_user.id
         )

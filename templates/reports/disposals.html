@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Parts Disposal Report</h2>
+        <div class="btn-group">
+            <a href="{{ url_for('reports.disposals', export='pdf', start_date=start_date, end_date=end_date) }}" class="btn btn-primary">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+            <a href="{{ url_for('reports.disposals', export='csv', start_date=start_date, end_date=end_date) }}" class="btn btn-success">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Date Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ url_for('reports.disposals') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Disposals</h5>
+                    <p class="card-text display-6">{{ summary.total_disposals }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items</h5>
+                    <p class="card-text display-6">{{ summary.total_items }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Total Cost Impact</h5>
+                    <p class="card-text display-6">{{ "{:,.2f}".format(summary.total_cost) }} NKF</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disposals Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Part Number</th>
+                            <th>Part Name</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Cost Impact</th>
+                            <th>Disposed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for disposal in disposals %}
+                        <tr>
+                            <td>{{ disposal.disposal_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ disposal.part.part_number }}</td>
+                            <td>{{ disposal.part.name }}</td>
+                            <td>{{ disposal.quantity }}</td>
+                            <td>{{ disposal.reason }}</td>
+                            <td>{{ "{:,.2f}".format(disposal.part.cost_price * disposal.quantity) }} NKF</td>
+                            <td>{{ disposal.user.username }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No disposal records found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize date inputs with current values
+    if (!$('#start_date').val()) {
+        var thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        $('#start_date').val(thirtyDaysAgo.toISOString().split('T')[0]);
+    }
+    if (!$('#end_date').val()) {
+        var today = new Date();
+        $('#end_date').val(today.toISOString().split('T')[0]);
+    }
+});
+</script>
+{% endblock %} 

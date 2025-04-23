@@ -11,6 +11,8 @@ from io import BytesIO
 from datetime import datetime
 from flask import send_file
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from forms import PartForm  # Updated import statement
+from utils.part_code_generator import generate_part_code
 
 
 parts = Blueprint('parts', __name__)
@@ -113,76 +115,22 @@ def add_part():
     is_staff = is_user_staff()
     print(f"User {current_user.username} is staff: {is_staff}")  # Debug line
     
-    if request.method == 'POST':
-        # Get form data
-        part_number = request.form.get('part_number')
-        name = request.form.get('name')
-        warehouse_id = request.form.get('warehouse_id')
-        unit = request.form.get('unit')
-        initial_stock = request.form.get('initial_stock', '0')
-        
-        # Validate required fields
-        errors = []
-        if not part_number:
-            errors.append("Part number is required")
-        if not name:
-            errors.append("Part name is required")
-        if not warehouse_id:
-            errors.append("Warehouse selection is required")
-        if not unit:
-            errors.append("Unit is required")
-            
-        # Validate numeric fields
+    form = PartForm()
+    print(f"Form data: {request.form}")  # Debug line
+    print(f"Form errors: {form.errors}")  # Debug line
+    
+    if form.validate_on_submit():
         try:
-            initial_stock = int(initial_stock)
-            if initial_stock < 0:
-                errors.append("Initial stock cannot be negative")
-        except ValueError:
-            errors.append("Initial stock must be a valid number")
-            
-        if request.form.get('min_stock'):
-            try:
-                min_stock = int(request.form.get('min_stock'))
-                if min_stock < 0:
-                    errors.append("Minimum stock level cannot be negative")
-            except ValueError:
-                errors.append("Minimum stock level must be a valid number")
-                
-        # Validate price fields if not staff
-        if not is_staff:
-            if request.form.get('min_price'):
-                try:
-                    min_price = float(request.form.get('min_price'))
-                    if min_price < 0:
-                        errors.append("Minimum price cannot be negative")
-                except ValueError:
-                    errors.append("Minimum price must be a valid number")
-                    
-            if request.form.get('max_price'):
-                try:
-                    max_price = float(request.form.get('max_price'))
-                    if max_price < 0:
-                        errors.append("Maximum price cannot be negative")
-                    if request.form.get('min_price') and max_price < float(request.form.get('min_price')):
-                        errors.append("Maximum price cannot be less than minimum price")
-                except ValueError:
-                    errors.append("Maximum price must be a valid number")
-        
-        # Check if part number already exists
-        existing_part = Part.query.filter_by(part_number=part_number).first()
-        if existing_part:
-            errors.append('A part with this part number already exists')
-            
-        # If there are any validation errors, flash them and return
-        if errors:
-            for error in errors:
-                flash(error, 'error')
-            return redirect(url_for('parts.add_part'))
+            print("Form validated successfully")  # Debug line
+            # Generate part code
+            part_code = generate_part_code(
+                form.manufacturer.data,
+                form.quality_level.data,
+                form.part_number.data
+            )
+            print(f"Generated part code: {part_code}")  # Debug line
 
-
-        try:
-            
-           # Handle barcode properly
+            # Handle barcode properly
             barcode = request.form.get('barcode', '').strip()
             if barcode:  # Use the provided barcode if it's not empty
                 # Validate barcode uniqueness
@@ -196,31 +144,34 @@ def add_part():
 
             # Create new part
             part = Part(
-                part_number=part_number,
-                name=name,
-                location=request.form.get('location'),
-                code=request.form.get('code'),
+                part_number=form.part_number.data,
+                name=form.name.data,
+                manufacturer=form.manufacturer.data,
+                quality_level=form.quality_level.data,
+                location=form.location.data,
+                code=part_code,  # Use the generated part code
                 substitute_part_number=request.form.get('substitute_part_number'),
-                stock_level=initial_stock,
+                stock_level=int(request.form.get('initial_stock', 0)),
                 min_stock=int(request.form.get('min_stock', 0)),
                 weight=float(request.form.get('weight')) if request.form.get('weight') else None,
                 height=float(request.form.get('height')) if request.form.get('height') else None,
                 length=float(request.form.get('length')) if request.form.get('length') else None,
                 width=float(request.form.get('width')) if request.form.get('width') else None,
                 color=request.form.get('color'),
-                description=request.form.get('description', ''),
-                unit=unit,
+                description=form.description.data,
+                unit=request.form.get('unit'),
                 category_id=request.form.get('category_id') or None,
                 supplier_id=request.form.get('supplier_id') or None,
-                barcode=barcode  # Set the barcode here
+                barcode=barcode,
+                cost_price=form.cost_price.data,
+                selling_price=form.selling_price.data
             )
+            print(f"Created part object: {part}")  # Debug line
             
-
             # Only set price fields if user is not staff
             if not is_staff:
                 part.min_price = float(request.form.get('min_price')) if request.form.get('min_price') else None
                 part.max_price = float(request.form.get('max_price')) if request.form.get('max_price') else None
-                part.cost_price = float(request.form.get('cost_price')) if request.form.get('cost_price') else None
             
             # Handle image upload
             if 'image' in request.files:
@@ -243,8 +194,15 @@ def add_part():
             # Add part to database first
             db.session.add(part)
             db.session.flush()  # Flush to get the part ID
+            print(f"Part added to session, ID: {part.id}")  # Debug line
             
             # Create warehouse stock entry
+            warehouse_id = request.form.get('warehouse_id')
+            if not warehouse_id:
+                flash('Warehouse selection is required', 'error')
+                db.session.rollback()
+                return redirect(url_for('parts.add_part'))
+                
             warehouse = Warehouse.query.get(warehouse_id)
             if not warehouse:
                 flash('Selected warehouse not found', 'error')
@@ -254,19 +212,20 @@ def add_part():
             warehouse_stock = WarehouseStock(
                 warehouse_id=warehouse_id,
                 part_id=part.id,
-                quantity=initial_stock
+                quantity=int(request.form.get('initial_stock', 0))
             )
             db.session.add(warehouse_stock)
-            db.session.flush()  # Flush to get the warehouse_stock ID
+            db.session.flush()
             
             # Create bin card entry for initial stock
+            initial_stock = int(request.form.get('initial_stock', 0))
             if initial_stock > 0:
                 bin_card = BinCard(
                     part_id=part.id,
                     transaction_type='in',
                     quantity=initial_stock,
                     reference_type='initial_stock',
-                    reference_id=warehouse_stock.id,  # Now we have the warehouse_stock ID
+                    reference_id=warehouse_stock.id,
                     balance=initial_stock,
                     user_id=current_user.id,
                     notes=f'Initial stock in warehouse {warehouse.name}'
@@ -274,14 +233,17 @@ def add_part():
                 db.session.add(bin_card)
             
             db.session.commit()
+            print("Database commit successful")  # Debug line
             flash('Part added successfully', 'success')
             return redirect(url_for('parts.list_parts'))
             
         except IntegrityError as e:
+            print(f"IntegrityError: {str(e)}")  # Debug line
             db.session.rollback()
             flash(f'Database error: {str(e)}', 'error')
             return redirect(url_for('parts.add_part'))
         except Exception as e:
+            print(f"Exception: {str(e)}")  # Debug line
             db.session.rollback()
             flash(f'Error adding part: {str(e)}', 'error')
             return redirect(url_for('parts.add_part'))
@@ -290,6 +252,7 @@ def add_part():
     suppliers = Supplier.query.all()
     warehouses = Warehouse.query.all()
     return render_template('parts/add.html', 
+                         form=form,
                          categories=categories, 
                          suppliers=suppliers, 
                          warehouses=warehouses,

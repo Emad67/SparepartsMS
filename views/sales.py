@@ -9,7 +9,9 @@ sales = Blueprint('sales', __name__)
 @sales.route('/sales')
 @login_required
 def list_sales():
-    sales = Transaction.query.filter_by(type='sale').order_by(Transaction.date.desc()).all()
+    sales = Transaction.query.filter_by(type='sale').filter(
+        (Transaction.status == None) | (Transaction.status != 'cancelled')
+    ).order_by(Transaction.date.desc()).all()
     # Get unique users who have made sales
     users = User.query.join(Transaction).filter(Transaction.type == 'sale').distinct().all()
     return render_template('sales/list.html', sales=sales, users=users)

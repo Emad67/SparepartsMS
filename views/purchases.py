@@ -15,7 +15,9 @@ purchases = Blueprint('purchases', __name__)
 @login_required
 @role_required('admin', 'manager')
 def list_purchases():
-    purchases = Purchase.query.order_by(Purchase.purchase_date.desc()).all()
+    # purchases = Purchase.query.order_by(Purchase.purchase_date.desc()).all()
+    # return render_template('purchases/list.html', purchases=purchases)
+    purchases = Purchase.query.filter(Purchase.status != 'cancelled').order_by(Purchase.purchase_date.desc()).all()
     return render_template('purchases/list.html', purchases=purchases)
 
 @purchases.route('/purchases/add', methods=['GET', 'POST'])
@@ -27,7 +29,7 @@ def add_purchase():
         supplier_id = request.form.get('supplier_id')
         warehouse_id = request.form.get('warehouse_id')
         quantity = int(request.form.get('quantity'))
-        unit_cost = float(request.form.get('unit_cost'))
+        unit_cost = float(request.form.get('unit_price'))
         total_cost = quantity * unit_cost
         invoice_number = request.form.get('invoice_number')
         

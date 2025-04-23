@@ -83,7 +83,7 @@ def add_disposal():
                 type='expense',
                 category='Disposal Loss',
                 amount=total_cost,
-                description=f'Disposal of {quantity} units of {part.name} (#{part.part_number}) at {format_nkf(unit_cost)} per unit',
+                description=f'Disposal of {quantity} units of {part.name} (#{part.part_number}) at {(unit_cost)} per unit',
                 reference_id=str(disposal.id),
                 user_id=current_user.id,
                 date=datetime.utcnow(),

@@ -2,38 +2,114 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">Active Loans Report</h2>
+    <h2 class="mb-4">Loans Report</h2>
     
-    <div class="btn-group mb-3">
-        <a href="{{ url_for('reports.export', report_type='loans', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='loans', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+    <!-- Date Range and Status Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">All Status</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="returned" {% if selected_status == 'returned' %}selected{% endif %}>Returned</option>
+                        <option value="overdue" {% if selected_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                        <option value="sold" {% if selected_status == 'sold' %}selected{% endif %}>Sold</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{{ url_for('reports.loans') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
     </div>
     
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Customer</th>
-                <th>Part</th>
-                <th>Quantity</th>
-                <th>Loan Date</th>
-                <th>Due Date</th>
-                <th>Days Remaining</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for loan in loans %}
-            {% set days_remaining = (loan.due_date - now).days %}
-            <tr class="{% if days_remaining < 0 %}table-danger
-                       {% elif days_remaining < 3 %}table-warning{% endif %}">
-                <td>{{ loan.customer.name }}</td>
-                <td>{{ loan.part.name }}</td>
-                <td>{{ loan.quantity }}</td>
-                <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
-                <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
-                <td>{{ days_remaining }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Loans</h5>
+                    <h3>{{ loans|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Quantity</h5>
+                    <h3>{{ total_quantity }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Value</h5>
+                    <h3>{{ "{:,.2f}".format(total_value) }} NKF</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Buttons -->
+    <div class="btn-group mb-3">
+        <a href="{{ url_for('reports.export', report_type='loans', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+           class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='loans', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" 
+           class="btn btn-danger">Export PDF</a>
+    </div>
+    
+    <!-- Loans Table -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Part</th>
+                    <th>Quantity</th>
+                    <th>Value</th>
+                    <th>Loan Date</th>
+                    <th>Due Date</th>
+                    <th>Days Remaining</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                {% set days_remaining = (loan.due_date - now).days %}
+                <tr class="{% if days_remaining < 0 %}table-danger
+                           {% elif days_remaining < 3 %}table-warning{% endif %}">
+                    <td>{{ loan.customer.name }}</td>
+                    <td>{{ loan.part.name }}</td>
+                    <td>{{ loan.quantity }}</td>
+                    <td>{{ "{:,.2f}".format(loan.quantity * loan.part.cost_price) }} NKF</td>
+                    <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ days_remaining }}</td>
+                    <td>
+                        <span class="badge {% if loan.status == 'active' %}bg-primary
+                                         {% elif loan.status == 'returned' %}bg-success
+                                         {% elif loan.status == 'overdue' %}bg-danger
+                                         {% elif loan.status == 'sold' %}bg-info
+                                         {% endif %}">
+                            {{ loan.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %} 

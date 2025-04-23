@@ -6,20 +6,29 @@
     
     <!-- Summary Cards -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <h3>{{ total_revenue|nkf }}</h3>
+                    <h3>{{ "{:,.2f}".format(total_revenue) }} NKF</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3>{{ total_expenses|nkf }}</h3>
+                    <h3>{{ "{:,.2f}".format(total_expenses) }} NKF</h3>
+                    <p class="card-text">For selected period</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Voided</h5>
+                    <h3>{{ "{:,.2f}".format(total_voids) }} NKF</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -44,6 +53,7 @@
                         <option value="">All</option>
                         <option value="revenue" {% if request.args.get('type') == 'revenue' %}selected{% endif %}>Revenue</option>
                         <option value="expense" {% if request.args.get('type') == 'expense' %}selected{% endif %}>Expense</option>
+                        <option value="void" {% if request.args.get('type') == 'void' %}selected{% endif %}>Void</option>
                     </select>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
@@ -79,13 +89,16 @@
                         <tr>
                             <td>{{ transaction.date.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>
-                                <span class="badge {% if transaction.type == 'revenue' %}bg-success{% else %}bg-danger{% endif %}">
+                                <span class="badge {% if transaction.type == 'revenue' %}bg-success{% elif transaction.type == 'expense' %}bg-danger{% else %}bg-warning{% endif %}">
                                     {{ transaction.type|title }}
                                 </span>
+                                {% if transaction.voided %}
+                                <span class="badge bg-secondary">Voided</span>
+                                {% endif %}
                             </td>
                             <td>{{ transaction.category }}</td>
                             <td>
-                                {{ "%.2f" | format(transaction.amount) }} NKF                                
+                                {{ "{:,.2f}".format(transaction.amount) }} NKF                                
                             </td>
                             <td>{{ transaction.description }}</td>
                             <td>{{ transaction.reference_id }}</td>

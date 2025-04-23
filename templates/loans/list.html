@@ -65,12 +65,12 @@
                     <td>{{ loan.quantity }}</td>
                     <td>
                         {% if loan.part and loan.part.cost_price %}
-                            {{ loan.part.cost_price|nkf }}
+                            {{ "{:,.2f}".format(loan.part.cost_price) }} NKF
                         {% else %}
                             N/A
                         {% endif %}
                     </td>
-                    <td>{% if loan.part.cost_price is not none %}{{ (loan.part.cost_price * loan.quantity)|nkf }}{% else %}N/A{% endif %}</td>
+                    <td>{% if loan.part.cost_price is not none %}{{ "{:,.2f}".format(loan.part.cost_price * loan.quantity) }} NKF{% else %}N/A{% endif %}</td>
                     <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
                     <td>

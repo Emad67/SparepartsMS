@@ -35,29 +35,68 @@ load_dotenv()
 
 def get_hardware_id():
     """Generate a unique hardware ID"""
+    # Use a combination of system information that is less likely to change
     system_info = platform.uname()
-    mac = uuid.getnode()
-    return hashlib.sha256(f"{system_info.node}{mac}".encode()).hexdigest()
+    
+    # For Windows, use the computer name and processor information
+    if platform.system() == 'Windows':
+        import subprocess
+        try:
+            # Get the computer name (more stable than node)
+            computer_name = subprocess.check_output('hostname', shell=True).decode().strip()
+            
+            # Get processor information
+            processor_info = platform.processor()
+            
+            # Use these more stable identifiers
+            return hashlib.sha256(f"{computer_name}{processor_info}".encode()).hexdigest()
+        except:
+            # Fallback to the original method if the above fails
+            mac = uuid.getnode()
+            return hashlib.sha256(f"{system_info.node}{mac}".encode()).hexdigest()
+    else:
+        # For other operating systems, use the original method
+        mac = uuid.getnode()
+        return hashlib.sha256(f"{system_info.node}{mac}".encode()).hexdigest()
+
+def get_license_path():
+    """Get the path to the license file in a permanent location"""
+    # Use the user's home directory for Windows
+    if platform.system() == 'Windows':
+        home_dir = os.path.expanduser('~')
+        license_dir = os.path.join(home_dir, '.spareparts')
+        os.makedirs(license_dir, exist_ok=True)
+        return os.path.join(license_dir, '.license')
+    # For other operating systems, use the application directory
+    else:
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), '.license')
 
 def validate_license():
     """Validate the software license"""
     hardware_id = get_hardware_id()
-    license_file = os.path.join(os.path.dirname(__file__), '.license')
+    license_file = get_license_path()
+    
+    print(f"Validating license...")
+    print(f"Hardware ID: {hardware_id}")
+    print(f"License file path: {license_file}")
     
     if not os.path.exists(license_file):
-        print("Error: No valid license found.")
+        print(f"Error: License file not found at {license_file}")
         print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
         sys.exit(1)
     
     try:
         with open(license_file, 'r') as f:
             stored_hash = f.read().strip()
+            print(f"Stored license hash: {stored_hash}")
             if stored_hash != hardware_id:
-                print("Error: Invalid license for this machine.")
+                print(f"Error: License mismatch. Expected {hardware_id}, got {stored_hash}")
                 print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
                 sys.exit(1)
-    except Exception:
-        print("Error: License validation failed.")
+            else:
+                print("License validated successfully!")
+    except Exception as e:
+        print(f"Error: License validation failed: {str(e)}")
         print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
         sys.exit(1)
 

@@ -17,23 +17,23 @@
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">From Location</label>
+                    <label class="form-label">From Warehouse</label>
                     <select class="form-select" name="from_location">
                         <option value="">All</option>
-                        {% for location in locations %}
-                        <option value="{{ location.id }}" {% if request.args.get('from_location')|int == location.id %}selected{% endif %}>
-                            {{ location.name }}
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}" {% if request.args.get('from_location')|int == warehouse.id %}selected{% endif %}>
+                            {{ warehouse.name }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">To Location</label>
+                    <label class="form-label">To Warehouse</label>
                     <select class="form-select" name="to_location">
                         <option value="">All</option>
-                        {% for location in locations %}
-                        <option value="{{ location.id }}" {% if request.args.get('to_location')|int == location.id %}selected{% endif %}>
-                            {{ location.name }}
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}" {% if request.args.get('to_location')|int == warehouse.id %}selected{% endif %}>
+                            {{ warehouse.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -61,37 +61,50 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Transfers</h5>
-                    <h2 class="card-text">{{ summary.total_transfers }}</h2>
+                    <p class="card-text display-6">{{ summary.total_transfers }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Completed Transfers</h5>
-                    <h2 class="card-text">{{ summary.completed_transfers }}</h2>
+                    <h5 class="card-title">Completed</h5>
+                    <p class="card-text display-6">{{ summary.completed_transfers }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-warning text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Pending Transfers</h5>
-                    <h2 class="card-text">{{ summary.pending_transfers }}</h2>
+                    <h5 class="card-title">Pending</h5>
+                    <p class="card-text display-6">{{ summary.pending_transfers }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-info text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Total Items Transferred</h5>
-                    <h2 class="card-text">{{ summary.total_items }}</h2>
+                    <h5 class="card-title">Total Items</h5>
+                    <p class="card-text display-6">{{ summary.total_items }}</p>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="mb-4">
+        <a href="{{ url_for('reports.transfers', export='excel', **request.args) }}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Export Excel
+        </a>
+        <a href="{{ url_for('reports.transfers', export='pdf', **request.args) }}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+        <a href="{{ url_for('reports.transfers', export='csv', **request.args) }}" class="btn btn-primary">
+            <i class="fas fa-file-csv"></i> Export CSV
+        </a>
     </div>
 
     <!-- Transfers Table -->
@@ -103,8 +116,8 @@
                         <tr>
                             <th>Transfer #</th>
                             <th>Date</th>
-                            <th>From Location</th>
-                            <th>To Location</th>
+                            <th>From Warehouse</th>
+                            <th>To Warehouse</th>
                             <th>Items</th>
                             <th>Status</th>
                             <th>Created By</th>
@@ -132,9 +145,8 @@
                             </td>
                             <td>{{ transfer.created_by.username }}</td>
                             <td>
-                                <a href="{{ url_for('transfers.view_transfer', transfer_id=transfer.id) }}" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="bi bi-eye"></i>
+                                <a href="{{ url_for('transfers.view_transfer', transfer_id=transfer.id) }}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> View
                                 </a>
                             </td>
                         </tr>

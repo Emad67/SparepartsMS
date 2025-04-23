@@ -40,8 +40,8 @@
                 <td>{{ purchase.supplier.name }}</td>
                 <td>{{ purchase.warehouse.name }}</td>
                 <td>{{ purchase.quantity }}</td>
-                <td>{{ purchase.unit_cost|nkf }}</td>
-                <td>{{ purchase.total_cost|nkf }}</td>
+                <td>{{ "{:,.2f}".format(purchase.unit_cost) }} NKF</td>
+                <td>{{ "{:,.2f}".format(purchase.total_cost)}} NKF</td>
                 <td>
                     <span class="badge {% if purchase.status == 'pending' %}bg-warning
                                      {% elif purchase.status == 'received' %}bg-success

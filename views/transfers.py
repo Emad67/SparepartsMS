@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import db, Transfer, Part, Warehouse, WarehouseStock, BinCard, TransferItem, Location
+from models import db, Transfer, Part, Warehouse, WarehouseStock, BinCard, TransferItem
 from datetime import datetime
 import uuid
 
@@ -23,7 +23,7 @@ def add_transfer():
         
         # Validate locations are different
         if from_location == to_location:
-            flash('Source and destination locations must be different', 'error')
+            flash('Source and destination warehouses must be different', 'error')
             return redirect(url_for('transfers.add_transfer'))
         
         # Validate source warehouse has enough stock
@@ -33,7 +33,7 @@ def add_transfer():
         ).first()
         
         if not source_stock or source_stock.quantity < quantity:
-            flash('Not enough stock in source location', 'error')
+            flash('Not enough stock in source warehouse', 'error')
             return redirect(url_for('transfers.add_transfer'))
         
         # Create transfer with a reference number

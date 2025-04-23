@@ -10,7 +10,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Revenue</h5>
-                    <h3>{{ total_revenue|nkf }}</h3>
+                    <h3>{{ "{:,.2f}".format(total_revenue) }} NKF</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -19,7 +19,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Expenses</h5>
-                    <h3>{{ total_expenses|nkf }}</h3>
+                    <h3>{{ "{:,.2f}".format(total_expenses) }} NKF</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
             <div class="card {% if profit >= 0 %}bg-info{% else %}bg-warning{% endif %} text-white">
                 <div class="card-body">
                     <h5 class="card-title">Net Profit/Loss</h5>
-                    <h3>{{ profit|nkf }}</h3>
+                    <h3>{{ "{:,.2f}".format(profit) }} NKF</h3>
                     <p class="card-text">For selected period</p>
                 </div>
             </div>
@@ -101,23 +101,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for date, types in daily_totals|groupby(0) %}
+                                {% for day in daily_summary %}
                                 <tr>
-                                    <td>{{ date }}</td>
-                                    {% set revenue = 0 %}
-                                    {% set expenses = 0 %}
-                                    {% for _, type, amount in types %}
-                                        {% if type == 'revenue' %}
-                                            {% set revenue = amount %}
-                                        {% else %}
-                                            {% set expenses = amount %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    <td>${{ "%.2f"|format(revenue) }}</td>
-                                    <td>${{ "%.2f"|format(expenses) }}</td>
+                                    <td>{{ day.date }}</td>
+                                    <td>${{ "{:,.2f}".format(day.revenue) }}</td>
+                                    <td>${{ "{:,.2f}".format(day.expenses) }}</td>
                                     <td>
-                                        <span class="{% if revenue - expenses >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            ${{ "%.2f"|format(revenue - expenses) }}
+                                        <span class="{% if day.net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ${{ "{:,.2f}".format(day.net) }}
                                         </span>
                                     </td>
                                 </tr>
@@ -147,23 +138,14 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for category, types in category_totals|groupby(0) %}
+                                {% for cat in category_summary %}
                                 <tr>
-                                    <td>{{ category or 'Uncategorized' }}</td>
-                                    {% set revenue = 0 %}
-                                    {% set expenses = 0 %}
-                                    {% for _, type, amount in types %}
-                                        {% if type == 'revenue' %}
-                                            {% set revenue = amount %}
-                                        {% else %}
-                                            {% set expenses = amount %}
-                                        {% endif %}
-                                    {% endfor %}
-                                    <td>${{ "%.2f"|format(revenue) }}</td>
-                                    <td>${{ "%.2f"|format(expenses) }}</td>
+                                    <td>{{ cat.category }}</td>
+                                    <td>${{ "{:,.2f}".format(cat.revenue) }}</td>
+                                    <td>${{ "{:,.2f}".format(cat.expenses) }}</td>
                                     <td>
-                                        <span class="{% if revenue - expenses >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                            ${{ "%.2f"|format(revenue - expenses) }}
+                                        <span class="{% if cat.net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ${{ "{:,.2f}".format(cat.net) }}
                                         </span>
                                     </td>
                                 </tr>

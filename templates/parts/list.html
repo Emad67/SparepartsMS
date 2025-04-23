@@ -33,11 +33,12 @@
                     <th>Part Number</th>
                     <th>Name</th>
                     <th>Location</th>
-                    <th>Model</th>
-                    <th>Make</th>
+                    <th>Code</th>
+                    <th>Substitute Part Number</th>
                     <th>Stock Level</th>
                     <th>Min Stock</th>
-                    <th>Price Range (Min-Max)</th>
+                    <th>Price (Min-Max)</th>
+                    <th>Selling Price</th>
                     <th>Cost Price</th>
                     <th>Image</th>
                     <th>Description</th>
@@ -80,20 +81,30 @@
                     <td>{{ part.min_stock }}</td>
                     <td>
                         {% if part.min_price or part.max_price %}
-                            {{ part.min_price|nkf }} - {{ part.max_price|nkf }}
+                            {{ part.min_price }} - {{ part.max_price }}
                         {% else %}
                             -
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        {% if part.cost_price %}
+                        {% if part.selling_price %}
                             <span class="badge bg-dark">
-                                {{ "%.2f" | format( part.cost_price) }} NKF
+                                {{ "{:,.2f}".format( part.selling_price) }} NKF
                             </span>
                         {% else %}
                             <span class="text-muted">-</span>
                         {% endif %}
                     </td>
+                    <td class="text-end">
+                        {% if part.cost_price %}
+                            <span class="badge bg-dark">
+                                {{ "{:,.2f}".format( part.cost_price) }} NKF
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    
                     <td>
                         {% if part.image_url %}
                             <img src="{{ part.image_url }}" 

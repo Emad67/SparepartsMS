@@ -12,7 +12,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Summary</h5>
-            <p class="card-text">Total Pending Amount: {{ "%.2f" | format( total_pending) }} NKF</p>
+            <p class="card-text">Total Pending Amount: {{ "{:,.2f}".format( total_pending) }} NKF</p>
         </div>
     </div>
     
@@ -35,7 +35,7 @@
                 <td>{{ credit.supplier.name }}</td>
                 <td>{{ credit.part.name }}</td>
                 <td>{{ credit.quantity }}</td>
-                <td>{{ "%.2f" | format( credit.price * credit.quantity) }} NKF</td>
+                <td>{{ "{:,.2f}".format( credit.price * credit.quantity) }} NKF</td>
                 <td>{{ credit.due_date.strftime('%Y-%m-%d') }}</td>
                 <td>
                     <span class="badge {% if credit.status == 'pending' %}bg-warning

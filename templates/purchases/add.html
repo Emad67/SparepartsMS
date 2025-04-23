@@ -15,7 +15,7 @@
                         <option value="{{ part.id }}" 
                                 data-part-number="{{ part.part_number }}"
                                 data-part-name="{{ part.name }}">
-                            {{ part.part_number }} - {{ part.name }}
+                            {{ part.part_number }} - {{ part.name }} - {{part.code}} - {{part.substitute_part_number}}
                         </option>
                         {% endfor %}
                     </select>

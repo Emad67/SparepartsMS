@@ -40,7 +40,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <h4>Total Revenue</h4>
-                    <h2>{{ "%.2f" | format( total_revenue) }} NKF</h2>
+                    <h2>{{ "{:,.2f}".format( total_revenue) }} NKF</h2>
                 </div>
             </div>
         </div>
@@ -48,7 +48,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body text-center">
                     <h4>Total Expenses</h4>
-                    <h2>{{ "%.2f" | format( total_expenses) }} NKF</h2>
+                    <h2>{{ "{:,.2f}".format( total_expenses) }} NKF</h2>
                 </div>
             </div>
         </div>
@@ -56,7 +56,7 @@
             <div class="card {% if total_revenue - total_expenses >= 0 %}bg-info{% else %}bg-danger{% endif %} text-white">
                 <div class="card-body text-center">
                     <h4>Net Profit</h4>
-                    <h2>{{ "%.2f" | format( total_revenue - total_expenses) }} NKF</h2>
+                    <h2>{{ "{:,.2f}".format( total_revenue - total_expenses) }} NKF</h2>
                 </div>
             </div>
         </div>
@@ -91,11 +91,11 @@
                         {% for date, revenue, expense, profit in daily_profits %}
                         <tr>
                             <td>{{ date }}</td>
-                            <td>NKF {{ "%.2f"|format(revenue) }}</td>
-                            <td>NKF {{ "%.2f"|format(expense) }}</td>
+                            <td>{{ "{:,.2f}".format(revenue) }} NKF</td>
+                            <td>{{ "{:,.2f}".format(expense) }} NKF</td>
                             <td>
                                 <span class="{% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                    NKF {{ "%.2f"|format(profit) }}
+                                    {{ "{:,.2f}".format(profit) }} NKF
                                 </span>
                             </td>
                             <td>

@@ -7,8 +7,8 @@
     <form method="POST">
         <div class="mb-3">
             <label for="customer" class="form-label">Customer</label>
-            <select class="form-select" name="customer_id" required>
-                <option value="">Select Customer</option>
+            <select class="form-select" id="customer_id" name="customer_id" required>
+                <option value="">Select a Customer</option>
                 {% for customer in customers %}
                 <option value="{{ customer.id }}">{{ customer.name }}</option>
                 {% endfor %}
@@ -49,29 +49,19 @@
 
 <script>
 $(document).ready(function() {
+    // Initialize Select2 for Customer selection
+    $('#customer_id').select2({
+        placeholder: 'Search Customer by Name',
+        width: '100%',
+    });
+
     // Initialize Select2 for part selection
     $('#part_id').select2({
         placeholder: 'Search Part by Number or Name',
         width: '100%',
-        matcher: function(params, data) {
-            // If there are no search terms, return all of the data
-            if ($.trim(params.term) === '') {
-                return data;
-            }
-
-            // Search in both part number and name
-            const partData = $(data.element);
-            const partNumber = partData.data('part-number').toLowerCase();
-            const partName = data.text.toLowerCase();
-            const searchTerm = params.term.toLowerCase();
-
-            if (partNumber.indexOf(searchTerm) > -1 || partName.indexOf(searchTerm) > -1) {
-                return data;
-            }
-
-            return null;
-        }
     });
+
+    
 });
 </script>
 {% endblock %}

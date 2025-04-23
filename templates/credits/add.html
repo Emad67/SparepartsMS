@@ -27,7 +27,7 @@
                 <option value="">Search Part by Number or Name</option>
                 {% for part in parts %}
                 <option value="{{ part.id }}" data-part-number="{{ part.part_number }}">
-                    {{ part.part_number }} - {{ part.name }}
+                    {{ part.part_number }} - {{ part.name }} - {{part.code}} - {{part.substitute_part_number}}
                 </option>
                 {% endfor %}
             </select>
@@ -75,70 +75,71 @@ $(document).ready(function() {
     $('#part_id').select2({
         placeholder: 'Search Part by Number or Name',
         width: '100%',
-        matcher: function(params, data) {
-            // If there are no search terms, return all of the data
-            if ($.trim(params.term) === '') {
-                return data;
-            }
+        // matcher: function(params, data) {
+        //     // If there are no search terms, return all of the data
+        //     if ($.trim(params.term) === '') {
+        //         return data;
+        //     }
 
-            // Search in both part number and name
-            const partData = $(data.element);
-            const partNumber = partData.data('part-number').toLowerCase();
-            const partName = data.text.toLowerCase();
-            const searchTerm = params.term.toLowerCase();
+        //     // Search in both part number and name
+        //     const partData = $(data.element);
+        //     const partNumber = partData.data('part-number').toLowerCase();
+        //     const partName = data.text.toLowerCase();
+        //     const searchTerm = params.term.toLowerCase();
 
-            if (partNumber.indexOf(searchTerm) > -1 || partName.indexOf(searchTerm) > -1) {
-                return data;
-            }
+        //     if (partNumber.indexOf(searchTerm) > -1 || partName.indexOf(searchTerm) > -1) {
+        //         return data;
+        //     }
 
-            return null;
-        }
+        //     return null;
+        // }
     });
 
     // Initialize Select2 for supplier selection
     $('#supplier_id').select2({
         placeholder: 'Search Supplier by Name or Contact Person',
         width: '100%',
-        matcher: function(params, data) {
-            if ($.trim(params.term) === '') {
-                return data;
-            }
+        // matcher: function(params, data) {
+        //     if ($.trim(params.term) === '') {
+        //         return data;
+        //     }
 
-            // Search in supplier name and contact person
-            const supplierData = $(data.element);
-            const contact = supplierData.data('contact') || '';
-            const email = supplierData.data('email') || '';
-            const phone = supplierData.data('phone') || '';
-            const searchTerm = params.term.toLowerCase();
-            const text = data.text.toLowerCase();
+        //     // Search in supplier name and contact person
+        //     const supplierData = $(data.element);
+        //     const contact = supplierData.data('contact') || '';
+        //     const email = supplierData.data('email') || '';
+        //     const phone = supplierData.data('phone') || '';
+        //     const searchTerm = params.term.toLowerCase();
+        //     const text = data.text.toLowerCase();
 
-            if (text.indexOf(searchTerm) > -1 || 
-                contact.toLowerCase().indexOf(searchTerm) > -1 ||
-                email.toLowerCase().indexOf(searchTerm) > -1 ||
-                phone.indexOf(searchTerm) > -1) {
-                return data;
-            }
+        //     if (text.indexOf(searchTerm) > -1 || 
+        //         contact.toLowerCase().indexOf(searchTerm) > -1 ||
+        //         email.toLowerCase().indexOf(searchTerm) > -1 ||
+        //         phone.indexOf(searchTerm) > -1) {
+        //         return data;
+        //     }
 
-            return null;
-        },
-        templateResult: function(data) {
-            if (!data.id) return data.text;
+        //     return null;
+        // },
+        // templateResult: function(data) {
+        //     if (!data.id) return data.text;
             
-            const $option = $(data.element);
-            const contact = $option.data('contact');
-            const email = $option.data('email');
-            const phone = $option.data('phone');
+        //     const $option = $(data.element);
+        //     const contact = $option.data('contact');
+        //     const email = $option.data('email');
+        //     const phone = $option.data('phone');
             
-            let html = `<div><strong>${data.text}</strong>`;
-            if (contact) html += `<br><small>Contact: ${contact}</small>`;
-            if (email) html += `<br><small>Email: ${email}</small>`;
-            if (phone) html += `<br><small>Phone: ${phone}</small>`;
-            html += '</div>';
+        //     let html = `<div><strong>${data.text}</strong>`;
+        //     if (contact) html += `<br><small>Contact: ${contact}</small>`;
+        //     if (email) html += `<br><small>Email: ${email}</small>`;
+        //     if (phone) html += `<br><small>Phone: ${phone}</small>`;
+        //     html += '</div>';
             
-            return $(html);
-        }
+        //     return $(html);
+        // }
     });
 
+   
     // Calculate total amount
     $('input[name="quantity"], input[name="price"]').on('input', function() {
         var quantity = $('input[name="quantity"]').val() || 0;

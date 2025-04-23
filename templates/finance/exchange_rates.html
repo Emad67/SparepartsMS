@@ -30,6 +30,19 @@
             </form>
         </div>
     </div>
+
+    <!-- Recalculate Prices Button -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Recalculate Selling Prices</h5>
+            <p class="card-text">Click the button below to recalculate all parts' selling prices based on the new exchange rate.</p>
+            <form method="POST" action="{{ url_for('finance.recalculate_prices') }}" onsubmit="return confirm('Are you sure you want to recalculate all selling prices? This action cannot be undone.');">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-calculator"></i> Recalculate All Prices
+                </button>
+            </form>
+        </div>
+    </div>
     
     <!-- Exchange Rate History -->
     <div class="card">
@@ -48,7 +61,7 @@
                     {% for rate in rates %}
                     <tr>
                         <td>{{ rate.effective_from.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ "%.4f"|format(rate.rate) }}</td>
+                        <td>{{ "%.2f"|format(rate.rate) }}</td>
                         <td>{{ rate.user.username }}</td>
                         <td>{{ rate.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     </tr>

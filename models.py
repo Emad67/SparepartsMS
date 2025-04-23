@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import event
 from flask import current_app
+from utils.part_code_generator import generate_part_code
 
 db = SQLAlchemy()
 
@@ -59,13 +60,20 @@ class Category(db.Model):
     parts = db.relationship('Part', backref='category', lazy=True)
 
 class Part(db.Model):
+    __tablename__ = 'parts'
+    
     id = db.Column(db.Integer, primary_key=True)
-    part_number = db.Column(db.String(50), unique=True, nullable=False)
+    part_number = db.Column(db.String(100), unique=True, nullable=False)
     name = db.Column(db.String(200), nullable=False)
-    location = db.Column(db.String(100))
-    code = db.Column(db.String(100))  # Changed from model
-    substitute_part_number = db.Column(db.String(100))  # Changed from make
+    description = db.Column(db.Text)
     stock_level = db.Column(db.Integer, default=0)
+    cost_price = db.Column(db.Float, default=0.0)
+    selling_price = db.Column(db.Float, default=0.0)
+    location = db.Column(db.String(100))
+    manufacturer = db.Column(db.String(100), nullable=False)
+    quality_level = db.Column(db.String(20), nullable=False)
+    code = db.Column(db.String(100))
+    substitute_part_number = db.Column(db.String(100))  # Changed from make
     min_stock = db.Column(db.Integer, default=0)  # Added minimum stock level
     weight = db.Column(db.Float)
     height = db.Column(db.Float)
@@ -73,7 +81,6 @@ class Part(db.Model):
     width = db.Column(db.Float)
     color = db.Column(db.String(50))
     image_url = db.Column(db.String(255))
-    description = db.Column(db.Text)
     unit = db.Column(db.String(20))  # piece, set, box
     min_price = db.Column(db.Float)
     max_price = db.Column(db.Float)
@@ -84,6 +91,16 @@ class Part(db.Model):
     barcode = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+
+    def __init__(self, *args, **kwargs):
+        super(Part, self).__init__(*args, **kwargs)
+        if self.manufacturer and self.quality_level and self.part_number:
+            self.code = generate_part_code(self.manufacturer, self.quality_level, self.part_number)
+    
+    def update_code(self):
+        """Update the code field based on current values"""
+        if self.manufacturer and self.quality_level and self.part_number:
+            self.code = generate_part_code(self.manufacturer, self.quality_level, self.part_number)
 
     def calculate_cost_price(self):
         """Calculate average cost price from purchases and credit purchases"""
@@ -97,7 +114,7 @@ class Part(db.Model):
         current_app.logger.info("\nRegular Purchases:")
         for purchase in self.purchases:
             current_app.logger.info(f"Purchase ID: {purchase.id}, Status: {purchase.status}, Unit Cost: {purchase.unit_cost}, Quantity: {purchase.quantity}")
-            if purchase.status != 'pending':
+            if purchase.status == 'received' and not purchase.voided:  # Only include received and non-voided purchases
                 total_cost += purchase.unit_cost * purchase.quantity
                 total_quantity += purchase.quantity
         
@@ -105,21 +122,26 @@ class Part(db.Model):
         current_app.logger.info("\nCredit Purchases:")
         for credit_purchase in self.credit_purchases:
             current_app.logger.info(f"Credit Purchase ID: {credit_purchase.id}, Status: {credit_purchase.status}, Price: {credit_purchase.price}, Quantity: {credit_purchase.quantity}")
-            if credit_purchase.status == 'paid':
+            if credit_purchase.status == 'paid' and not credit_purchase.voided:  # Only include paid and non-voided credit purchases
                 total_cost += credit_purchase.price * credit_purchase.quantity
                 total_quantity += credit_purchase.quantity
         
         if total_quantity > 0:
-            self.cost_price = total_cost / total_quantity
+            new_cost_price = total_cost / total_quantity
             current_app.logger.info(f"\nCalculation Results:")
             current_app.logger.info(f"Total cost: {total_cost}")
             current_app.logger.info(f"Total quantity: {total_quantity}")
-            current_app.logger.info(f"New cost price: {self.cost_price}")
+            current_app.logger.info(f"New cost price: {new_cost_price}")
+            
+            # Update the cost price
+            self.cost_price = new_cost_price
             db.session.add(self)  # Ensure the part is added to the session
+            db.session.flush()  # Force the update to be written to the database
         else:
             current_app.logger.info("\nNo valid purchases found for cost price calculation")
+            new_cost_price = self.cost_price  # Keep the existing cost price if no valid purchases
         
-        return self.cost_price
+        return new_cost_price
 
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -137,12 +159,12 @@ class Customer(db.Model):
     email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
     address = db.Column(db.Text)
-    loans = db.relationship('Loan', backref='customer', lazy=True)
+    # The loans relationship is defined in the Loan model
 
 class Loan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
     loan_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -150,24 +172,44 @@ class Loan(db.Model):
     returned_date = db.Column(db.DateTime)
     status = db.Column(db.String(20))  # active, returned, overdue
     
-    # Add relationships
-    part = db.relationship('Part', backref='loans')
+    # Add relationships with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('loans', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='Loan.part_id == Part.id')
+    
+    customer = db.relationship('Customer', 
+                             backref=db.backref('loans', lazy=True),
+                             foreign_keys=[customer_id],
+                             primaryjoin='Loan.customer_id == Customer.id')
 
 class CreditPurchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
     purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.DateTime)
     status = db.Column(db.String(20))  # pending, paid, overdue
+    voided = db.Column(db.Boolean, default=False)
     
-    # Add relationships
-    supplier = db.relationship('Supplier', backref='credit_purchases')
-    part = db.relationship('Part', backref='credit_purchases')
-    warehouse = db.relationship('Warehouse', backref='credit_purchases')
+    # Add relationships with explicit foreign keys and primaryjoin
+    supplier = db.relationship('Supplier', 
+                             backref=db.backref('credit_purchases', lazy=True),
+                             foreign_keys=[supplier_id],
+                             primaryjoin='CreditPurchase.supplier_id == Supplier.id')
+    
+    part = db.relationship('Part', 
+                         backref=db.backref('credit_purchases', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='CreditPurchase.part_id == Part.id')
+    
+    warehouse = db.relationship('Warehouse', 
+                              backref=db.backref('credit_purchases', lazy=True),
+                              foreign_keys=[warehouse_id],
+                              primaryjoin='CreditPurchase.warehouse_id == Warehouse.id')
 
     def update_part_cost_price(self):
         """Update the part's cost price after credit purchase status changes"""
@@ -176,22 +218,31 @@ class CreditPurchase(db.Model):
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     type = db.Column(db.String(20))  # purchase, sale, return
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    status = db.Column(db.String(20))  # pending, paid, overdue
+    voided = db.Column(db.Boolean, default=False)
     
-    # Add relationships
-    part = db.relationship('Part', backref='transactions')
-    user = db.relationship('User', backref='transactions')
+    # Relationships with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('transactions', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='Transaction.part_id == Part.id')
+    
+    user = db.relationship('User', 
+                         backref=db.backref('transactions', lazy=True),
+                         foreign_keys=[user_id],
+                         primaryjoin='Transaction.user_id == User.id')
 
 class Transfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     reference_number = db.Column(db.String(50), unique=True)
-    from_location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
-    to_location_id = db.Column(db.Integer, db.ForeignKey('location.id'))
+    from_location_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
+    to_location_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20))  # pending, in_transit, completed, cancelled
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -199,19 +250,24 @@ class Transfer(db.Model):
     # Relationships
     items = db.relationship('TransferItem', backref='transfer', lazy=True)
     created_by = db.relationship('User', backref='created_transfers')
+    from_location = db.relationship('Warehouse', foreign_keys=[from_location_id], backref='transfers_from')
+    to_location = db.relationship('Warehouse', foreign_keys=[to_location_id], backref='transfers_to')
 
 class TransferItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transfer_id = db.Column(db.Integer, db.ForeignKey('transfer.id'))
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     quantity = db.Column(db.Integer)
     
-    # Relationship
-    part = db.relationship('Part', backref='transfer_items')
+    # Relationship with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('transfer_items', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='TransferItem.part_id == Part.id')
 
 class StockAdjustment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     quantity_change = db.Column(db.Integer)
     reason = db.Column(db.Text)
     date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -232,25 +288,29 @@ class Location(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     
-    # Relationships for transfers
-    transfers_from = db.relationship('Transfer', backref='from_location', 
-                                   foreign_keys='Transfer.from_location_id')
-    transfers_to = db.relationship('Transfer', backref='to_location', 
-                                 foreign_keys='Transfer.to_location_id')
+    def __repr__(self):
+        return f'<Location {self.name}>'
 
 class WarehouseStock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Note: using 'parts' table name
     quantity = db.Column(db.Integer, default=0)
     
-    # Add relationships
-    warehouse = db.relationship('Warehouse', backref='stock_items')
-    part = db.relationship('Part', backref='warehouse_stocks')
+    # Add relationships with explicit foreign keys and primaryjoin
+    warehouse = db.relationship('Warehouse', 
+                              backref=db.backref('stock_items', lazy=True),
+                              foreign_keys=[warehouse_id],
+                              primaryjoin='WarehouseStock.warehouse_id == Warehouse.id')
+    
+    part = db.relationship('Part', 
+                          backref=db.backref('warehouse_stocks', lazy=True),
+                          foreign_keys=[part_id],
+                          primaryjoin='WarehouseStock.part_id == Part.id')
 
 class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     quantity = db.Column(db.Integer)
@@ -260,12 +320,28 @@ class Purchase(db.Model):
     status = db.Column(db.String(20))  # pending, received, cancelled
     invoice_number = db.Column(db.String(50))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    voided = db.Column(db.Boolean, default=False)  # Added voided field
     
-    part = db.relationship('Part', backref='purchases')
-    supplier = db.relationship('Supplier', backref='purchases')
-    warehouse = db.relationship('Warehouse', backref='purchases')
-    user = db.relationship('User', backref='purchases')
+    # Add relationships with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('purchases', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='Purchase.part_id == Part.id')
     
+    supplier = db.relationship('Supplier', 
+                             backref=db.backref('purchases', lazy=True),
+                             foreign_keys=[supplier_id],
+                             primaryjoin='Purchase.supplier_id == Supplier.id')
+    
+    warehouse = db.relationship('Warehouse', 
+                              backref=db.backref('purchases', lazy=True),
+                              foreign_keys=[warehouse_id],
+                              primaryjoin='Purchase.warehouse_id == Warehouse.id')
+    
+    user = db.relationship('User', 
+                         backref=db.backref('purchases', lazy=True),
+                         foreign_keys=[user_id],
+                         primaryjoin='Purchase.user_id == User.id')
 
     def update_part_cost_price(self):
         """Update the part's cost price after purchase status changes"""
@@ -311,7 +387,7 @@ class FinancialTransaction(db.Model):
 class BinCard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'), nullable=False)
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'), nullable=False)  # Changed from 'part.id' to 'parts.id'
     transaction_type = db.Column(db.String(20), nullable=False)  # 'in' or 'out'
     quantity = db.Column(db.Integer, nullable=False)
     reference_type = db.Column(db.String(20), nullable=False)  # 'purchase', 'sale', 'loan', 'return', etc.
@@ -319,10 +395,23 @@ class BinCard(db.Model):
     balance = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     notes = db.Column(db.String(200))
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=True)  # Fixed table name from 'warehouses' to 'warehouse'
     
-    # Relationships
-    part = db.relationship('Part', backref=db.backref('bincard_entries', lazy=True))
-    user = db.relationship('User', backref=db.backref('bincard_entries', lazy=True))
+    # Relationships with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('bincard_entries', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='BinCard.part_id == Part.id')
+    
+    user = db.relationship('User', 
+                         backref=db.backref('bincard_entries', lazy=True),
+                         foreign_keys=[user_id],
+                         primaryjoin='BinCard.user_id == User.id')
+    
+    warehouse = db.relationship('Warehouse',  # Add warehouse relationship
+                              backref=db.backref('bincard_entries', lazy=True),
+                              foreign_keys=[warehouse_id],
+                              primaryjoin='BinCard.warehouse_id == Warehouse.id')
     
     def __repr__(self):
         return f'<BinCard {self.id}: {self.transaction_type} {self.quantity} of Part {self.part_id}>'
@@ -345,7 +434,7 @@ class Message(db.Model):
 
 class Disposal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    part_id = db.Column(db.Integer, db.ForeignKey('part.id'))
+    part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
     quantity = db.Column(db.Integer, nullable=False)
     reason = db.Column(db.Text, nullable=False)
@@ -353,10 +442,21 @@ class Disposal(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     cost = db.Column(db.Float)  # Total cost of disposed items
     
-    # Relationships
-    part = db.relationship('Part', backref='disposals')
-    warehouse = db.relationship('Warehouse', backref='disposals')
-    user = db.relationship('User', backref='disposals')
+    # Relationships with explicit foreign keys and primaryjoin
+    part = db.relationship('Part', 
+                         backref=db.backref('disposals', lazy=True),
+                         foreign_keys=[part_id],
+                         primaryjoin='Disposal.part_id == Part.id')
+    
+    warehouse = db.relationship('Warehouse', 
+                              backref=db.backref('disposals', lazy=True),
+                              foreign_keys=[warehouse_id],
+                              primaryjoin='Disposal.warehouse_id == Warehouse.id')
+    
+    user = db.relationship('User', 
+                         backref=db.backref('disposals', lazy=True),
+                         foreign_keys=[user_id],
+                         primaryjoin='Disposal.user_id == User.id')
 
 class ExchangeRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -377,13 +477,35 @@ class ExchangeRate(db.Model):
         ).order_by(ExchangeRate.effective_from.desc()).first()
         return rate.rate if rate else 15.0  # Default rate
 
-# Add SQLAlchemy event listeners
-@event.listens_for(Purchase, 'after_insert')
-def purchase_cost_price_update(mapper, connection, target):
-    print(f"Event triggered for new Purchase ID: {target.id}")
-    target.update_part_cost_price()
+# # Add SQLAlchemy event listeners
+# @event.listens_for(Purchase, 'after_insert')
+# @event.listens_for(Purchase, 'after_update')
+# def purchase_cost_price_update(mapper, connection, target):
+#     """Update part cost price when purchase is created or updated"""
+#     if target.part:
+#         current_app.logger.info(f"Event triggered for Purchase ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
 
-@event.listens_for(CreditPurchase, 'after_insert')
-@event.listens_for(CreditPurchase, 'after_update')
-def credit_purchase_cost_price_update(mapper, connection, target):
-    target.update_part_cost_price()
+# @event.listens_for(CreditPurchase, 'after_insert')
+# @event.listens_for(CreditPurchase, 'after_update')
+# def credit_purchase_cost_price_update(mapper, connection, target):
+#     """Update part cost price when credit purchase is created or updated"""
+#     if target.part:
+#         current_app.logger.info(f"Event triggered for Credit Purchase ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
+
+# @event.listens_for(Transaction, 'after_insert')
+# @event.listens_for(Transaction, 'after_update')
+# def transaction_cost_price_update(mapper, connection, target):
+#     """Update part cost price when transaction is created or updated"""
+#     if target.part and target.type == 'sale':
+#         current_app.logger.info(f"Event triggered for Transaction ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
+#         db.session.add(target.part)
+#         db.session.flush()
