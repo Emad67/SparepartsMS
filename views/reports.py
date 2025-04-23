@@ -39,7 +39,84 @@ def index():
 @login_required
 def low_stock():
     low_stock_parts = Part.query.filter(Part.stock_level < 10).all()
+    
+    # Handle export requests directly from this route
+    if request.args.get('export') == 'pdf':
+        return export_low_stock_pdf(low_stock_parts)
+    elif request.args.get('export') == 'csv':
+        return export_low_stock_csv(low_stock_parts)
+        
     return render_template('reports/low_stock.html', parts=low_stock_parts)
+
+def export_low_stock_pdf(parts):
+    """Dedicated function for exporting low stock reports to PDF"""
+    headers = ['Part Number', 'Name', 'Current Stock', 'Location']
+    
+    # Convert parts to data array for PDF generation
+    data = [headers]  # Add headers as first row
+    data.extend([
+        [
+            part.part_number,
+            part.name,
+            str(part.stock_level),
+            part.location or 'N/A'
+        ] for part in parts
+    ])
+    
+    # Calculate totals
+    total_low_stock = sum(part.stock_level for part in parts)
+    
+    # Add empty row before totals for spacing
+    data.append(['', '', '', ''])
+    
+    # Add total row - will be detected and styled by generate_pdf
+    data.append(['Total Low Stock Parts:', str(len(parts)), '', ''])
+    data.append(['Total Units in Low Stock:', str(total_low_stock), '', ''])
+    
+    title = "Low Stock Report"
+    
+    # Generate PDF using the existing function
+    buffer = generate_pdf(data, title, headers)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'low_stock_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+    )
+    
+def export_low_stock_csv(parts):
+    """Dedicated function for exporting low stock reports to CSV"""
+    buffer = BytesIO()
+    buffer.write(b'\xef\xbb\xbf')  # UTF-8 BOM for Excel compatibility
+    
+    # Write report header
+    current_date = datetime.now().strftime('%Y-%m-%d %H:%M')
+    buffer.write(f'Report Type: Low Stock Report\n'.encode('utf-8'))
+    buffer.write(f'Generated on: {current_date}\n'.encode('utf-8'))
+    buffer.write('\n'.encode('utf-8'))
+    
+    # Write CSV header
+    buffer.write('Part Number,Name,Current Stock,Location\n'.encode('utf-8'))
+    
+    # Write part data
+    total_low_stock = 0
+    for part in parts:
+        row = f'{part.part_number},{part.name},{part.stock_level},{part.location or "N/A"}\n'
+        buffer.write(row.encode('utf-8'))
+        total_low_stock += part.stock_level
+    
+    # Write totals
+    buffer.write('\n'.encode('utf-8'))
+    buffer.write(f'Total Low Stock Parts:,,{len(parts)},\n'.encode('utf-8'))
+    buffer.write(f'Total Units in Low Stock:,,{total_low_stock},\n'.encode('utf-8'))
+    
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f'low_stock_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+    )
 
 @reports.route('/reports/sales')
 @login_required
@@ -291,14 +368,22 @@ def profit():
 def credits():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
+    status = request.args.get('status', '')
     
     # Get date range with fallback to last 30 days
     start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
-    credits = CreditPurchase.query.filter(
+    # Base query
+    query = CreditPurchase.query.filter(
         CreditPurchase.purchase_date >= start_datetime,
         CreditPurchase.purchase_date <= end_datetime
-    ).all()
+    )
+    
+    # Apply status filter if provided
+    if status:
+        query = query.filter(CreditPurchase.status == status)
+    
+    credits = query.all()
     
     total_pending = sum(credit.price * credit.quantity 
                        for credit in credits if credit.status == 'pending')
@@ -307,7 +392,8 @@ def credits():
                          credits=credits,
                          start_date=format_date(start_datetime),
                          end_date=format_date(end_datetime),
-                         total_pending=total_pending)
+                         total_pending=total_pending,
+                         selected_status=status)
 
 @reports.route('/reports/loans')
 @login_required
@@ -526,6 +612,15 @@ def generate_pdf(data, title, headers):
     # Create table with flexible column widths
     table = Table(data, colWidths=[total_width/len(headers)] * len(headers), repeatRows=1)
     
+    # Determine which rows are totals rows based on data content
+    # Usually they're near the end of the table after an empty row
+    totals_row_indices = []
+    for i in range(1, len(data)):
+        if i < len(data) - 1 and all(cell == '' for cell in data[i]) and data[i+1][0].startswith('Total'):
+            totals_row_indices.append(i+1)
+        elif i > 1 and data[i][0].startswith('Total'):
+            totals_row_indices.append(i)
+    
     # Add table style with improved formatting
     table_style = TableStyle([
         # Header styling
@@ -553,21 +648,22 @@ def generate_pdf(data, title, headers):
         ('LINEAFTER', (0, 0), (-1, -1), 1, colors.black),
         ('LINEBELOW', (0, 0), (-1, -1), 1, colors.black),
         ('LINEABOVE', (0, 0), (-1, -1), 1, colors.black),
-        
-        # Summary section styling
-        ('BACKGROUND', (0, -6), (-1, -6), colors.HexColor('#f5f5f5')),  # Empty row
-        ('BACKGROUND', (0, -5), (-1, -5), colors.HexColor('#e3f2fd')),  # Summary header
-        ('FONTNAME', (0, -5), (-1, -5), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, -5), (-1, -5), 10),
-        ('ALIGN', (0, -5), (-1, -5), 'CENTER'),
-        ('BACKGROUND', (0, -4), (-1, -1), colors.HexColor('#f5f5f5')),  # Summary rows
-        ('ALIGN', (0, -4), (-1, -1), 'LEFT'),  # Left align summary data
-        ('FONTNAME', (0, -4), (-1, -1), 'Helvetica-Bold'),
-        
-        # Alternate row colors for main data
-        ('ROWBACKGROUNDS', (0, 1), (-1, -7), [colors.white, colors.HexColor('#f5f5f5')])
     ])
     
+    # Add alternating row background colors for main data (excluding header and totals)
+    main_data_end = len(data) - len(totals_row_indices) - 1 if totals_row_indices else len(data)
+    table_style.add('ROWBACKGROUNDS', (0, 1), (-1, main_data_end), [colors.white, colors.HexColor('#f5f5f5')])
+    
+    # Special styling for totals rows
+    for row_idx in totals_row_indices:
+        # Style for the actual totals row - bold, slightly larger font, light background
+        table_style.add('BACKGROUND', (0, row_idx), (-1, row_idx), colors.HexColor('#f2f7fd'))  # Very light blue
+        table_style.add('FONTNAME', (0, row_idx), (-1, row_idx), 'Helvetica-Bold')
+        table_style.add('FONTSIZE', (0, row_idx), (-1, row_idx), 10)  # Slightly larger
+        table_style.add('BOTTOMPADDING', (0, row_idx), (-1, row_idx), 8)
+        table_style.add('TOPPADDING', (0, row_idx), (-1, row_idx), 8)
+    
+    # Apply the style to the table
     table.setStyle(table_style)
     elements.append(table)
     
@@ -721,22 +817,23 @@ def export_csv(report_type, start_datetime, end_datetime):
         buffer.write(f'Total Out:,,,,{total_out},,,,\n'.encode('utf-8'))
         buffer.write(f'Current Balance:,,,,{part.stock_level},,,,\n'.encode('utf-8'))
         
-    elif report_type == 'low_stock':
-        parts = Part.query.filter(Part.stock_level < 10).all()
-        buffer.write('Part Number,Name,Current Stock,Location\n'.encode('utf-8'))
-        total_low_stock = 0
-        for part in parts:
-            row = f'{part.part_number},{part.name},{part.stock_level},{part.location}\n'
-            buffer.write(row.encode('utf-8'))
-            total_low_stock += part.stock_level
-        
-        # Write totals
-        buffer.write('\n'.encode('utf-8'))
-        buffer.write(f'Total Low Stock Parts:,,{len(parts)},\n'.encode('utf-8'))
-        buffer.write(f'Total Units in Low Stock:,,{total_low_stock},\n'.encode('utf-8'))
-        
     elif report_type == 'credits':
-        credits = CreditPurchase.query.all()
+        # Apply proper date filters to credit purchases
+        query = CreditPurchase.query
+        
+        # Apply date filters using func.date to handle date comparison properly
+        if start_datetime:
+            query = query.filter(func.date(CreditPurchase.purchase_date) >= start_datetime.date())
+        if end_datetime:
+            query = query.filter(func.date(CreditPurchase.purchase_date) <= end_datetime.date())
+            
+        # Apply status filter if provided
+        status = request.args.get('status', '')
+        if status:
+            query = query.filter(CreditPurchase.status == status)
+            
+        credits = query.order_by(CreditPurchase.purchase_date).all()
+        
         buffer.write('Date,Supplier,Part,Quantity,Amount,Due Date,Status\n'.encode('utf-8'))
         total_quantity = 0
         total_amount = 0
@@ -757,7 +854,17 @@ def export_csv(report_type, start_datetime, end_datetime):
         buffer.write(f'Total Pending Amount:,,,,${total_pending:.2f},,\n'.encode('utf-8'))
         
     elif report_type == 'loans':
-        loans = Loan.query.all()
+        # Apply proper date filters to loans
+        query = Loan.query
+        
+        # Apply date filters using func.date to handle date comparison properly
+        if start_datetime:
+            query = query.filter(func.date(Loan.loan_date) >= start_datetime.date())
+        if end_datetime:
+            query = query.filter(func.date(Loan.loan_date) <= end_datetime.date())
+            
+        loans = query.order_by(Loan.loan_date).all()
+        
         buffer.write('Date,Customer,Part,Quantity,Due Date,Status\n'.encode('utf-8'))
         total_quantity = 0
         total_pending = 0
@@ -867,37 +974,33 @@ def export_pdf(report_type, start_datetime, end_datetime):
         data.append(['Current Balance:', str(part.stock_level), '', '', '', '', ''])
         
         title = f"Bin Card - {part.name} ({part.part_number})"
-    
-    elif report_type == 'low_stock':
-        parts = Part.query.filter(Part.stock_level < 10).all()
-        headers = ['Part Number', 'Name', 'Current Stock', 'Location']
-        data = [headers]  # Add headers as first row
-        data.extend([
-            [
-                part.part_number,
-                part.name,
-                str(part.stock_level),
-                part.location
-            ] for part in parts
-        ])
         
-        # Add totals
-        total_low_stock = sum(part.stock_level for part in parts)
-        data.append(['', '', '', ''])  # Empty row
-        data.append(['Total Low Stock Parts:', str(len(parts)), '', ''])
-        data.append(['Total Units in Low Stock:', str(total_low_stock), '', ''])
-        
-        title = "Low Stock Report"
+        # Add date range to title if dates are provided
+        if start_datetime and end_datetime:
+            title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
+            
+        buffer = generate_pdf(data, title, headers)
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'bincard_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        )
     
     elif report_type == 'credits':
         # Create base query
         query = CreditPurchase.query
         
-        # Apply date filters
+        # Apply date filters using func.date to handle date comparison properly
         if start_datetime:
-            query = query.filter(CreditPurchase.purchase_date >= start_datetime)
+            query = query.filter(func.date(CreditPurchase.purchase_date) >= start_datetime.date())
         if end_datetime:
-            query = query.filter(CreditPurchase.purchase_date <= end_datetime)
+            query = query.filter(func.date(CreditPurchase.purchase_date) <= end_datetime.date())
+            
+        # Apply status filter if provided
+        status = request.args.get('status', '')
+        if status:
+            query = query.filter(CreditPurchase.status == status)
             
         credits = query.order_by(CreditPurchase.purchase_date).all()
         
@@ -943,11 +1046,11 @@ def export_pdf(report_type, start_datetime, end_datetime):
         # Create base query
         query = Loan.query
         
-        # Apply date filters
+        # Apply date filters using func.date to handle date comparison properly
         if start_datetime:
-            query = query.filter(Loan.loan_date >= start_datetime)
+            query = query.filter(func.date(Loan.loan_date) >= start_datetime.date())
         if end_datetime:
-            query = query.filter(Loan.loan_date <= end_datetime)
+            query = query.filter(func.date(Loan.loan_date) <= end_datetime.date())
             
         loans = query.order_by(Loan.loan_date).all()
         
@@ -972,6 +1075,18 @@ def export_pdf(report_type, start_datetime, end_datetime):
         data.append(['Total Pending Loans:', '', '', str(total_pending), '', ''])
         
         title = "Loans Report"
+        
+        # Add date range to title if dates are provided
+        if start_datetime and end_datetime:
+            title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
+            
+        buffer = generate_pdf(data, title, headers)
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'loans_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        )
     
     elif report_type == 'purchases':
         # Create base query
@@ -979,23 +1094,23 @@ def export_pdf(report_type, start_datetime, end_datetime):
         
         # Apply date filters
         if start_datetime:
-            query = query.filter(Purchase.purchase_date >= start_datetime)
+            query = query.filter(func.date(Purchase.purchase_date) >= start_datetime.date())
         if end_datetime:
-            query = query.filter(Purchase.purchase_date <= end_datetime)
+            query = query.filter(func.date(Purchase.purchase_date) <= end_datetime.date())
             
         purchases = query.order_by(Purchase.purchase_date).all()
         
-        headers = ['Date', 'Part', 'Supplier', 'Quantity', 'Unit Cost', 'Total Cost', 'Status']
+        headers = ['Date', 'Part', 'Quantity', 'Unit Cost', 'Total Cost', 'Supplier', 'Status']
         data = [headers]  # Add headers as first row
         data.extend([
             [
                 purchase.purchase_date.strftime("%Y-%m-%d"),
                 purchase.part.name,
-                purchase.supplier.name,
                 str(purchase.quantity),
                 f"{purchase.unit_cost:.2f} NKF",
                 f"{purchase.total_cost:.2f} NKF",
-                purchase.status
+                purchase.supplier.name if purchase.supplier else "N/A",
+                purchase.status.title()
             ] for purchase in purchases
         ])
         
@@ -1003,24 +1118,24 @@ def export_pdf(report_type, start_datetime, end_datetime):
         total_quantity = sum(purchase.quantity for purchase in purchases)
         total_cost = sum(purchase.total_cost for purchase in purchases)
         data.append(['', '', '', '', '', '', ''])  # Empty row
-        data.append(['Totals', '', '', str(total_quantity), '', f"{total_cost:.2f} NKF", ''])
+        data.append(['Totals', '', str(total_quantity), '', f"{total_cost:.2f} NKF", '', ''])
         
         title = "Purchases Report"
+        
+        # Add date range to title if dates are provided
+        if start_datetime and end_datetime:
+            title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
+            
+        buffer = generate_pdf(data, title, headers)
+        return send_file(
+            buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'purchases_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        )
     
     else:
         return 'Invalid report type', 400
-
-    # Add date range to title if dates are provided
-    if start_datetime and end_datetime:
-        title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
-
-    buffer = generate_pdf(data, title, headers)
-    return send_file(
-        buffer,
-        mimetype='application/pdf',
-        as_attachment=True,
-        download_name=f'{report_type}_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
-    )
 
 @reports.route('/reports/disposals')
 @login_required

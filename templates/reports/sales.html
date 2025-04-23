@@ -70,8 +70,8 @@
     
     <!-- Export Buttons -->
     <div class="btn-group mb-3">
-        <a href="{{ url_for('reports.export', report_type='sales', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='sales', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-danger">Export PDF</a>
     </div>
     
     <!-- Sales Table -->

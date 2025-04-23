@@ -5,8 +5,36 @@
     <h2 class="mb-4">Credit Purchases Report</h2>
     
     <div class="btn-group mb-3">
-        <a href="{{ url_for('reports.export', report_type='credits', format='csv') }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='credits', format='pdf') }}" class="btn btn-danger">Export PDF</a>
+        <a href="{{ url_for('reports.export', report_type='credits', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='credits', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-danger">Export PDF</a>
+    </div>
+    
+    <!-- Date Range and Status Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">From Date</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">To Date</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="">All Status</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid</option>
+                        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Update Report</button>
+                </div>
+            </form>
+        </div>
     </div>
     
     <div class="card mb-4">

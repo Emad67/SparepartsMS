@@ -786,7 +786,7 @@ def void_transaction(transaction_id):
         if transaction.voided:
             current_app.logger.warning(f"Attempt to void already voided transaction: {transaction_id}")
             return jsonify({'error': 'Transaction is already voided'}), 400
-            
+        
         if transaction.amount <= 0:
             current_app.logger.warning(f"Attempt to void transaction with invalid amount: {transaction_id}")
             return jsonify({'error': 'Cannot void transaction with zero or negative amount'}), 400
