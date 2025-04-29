@@ -101,6 +101,7 @@ def search_parts():
         'name': part.name,
         'code': part.code,
         'substitute_part_number': part.substitute_part_number,
+        'selling_price': float(part.selling_price) if hasattr(part, 'selling_price') and part.selling_price else 0,
         'stock_level': sum(stock.quantity for stock in part.warehouse_stocks),
         'min_price': float(part.min_price) if part.min_price else 0,
         'max_price': float(part.max_price) if part.max_price else 0,
