@@ -77,8 +77,6 @@ def validate_license():
     license_file = get_license_path()
     
     print(f"Validating license...")
-    print(f"Hardware ID: {hardware_id}")
-    print(f"License file path: {license_file}")
     
     if not os.path.exists(license_file):
         print(f"Error: License file not found at {license_file}")
@@ -88,13 +86,12 @@ def validate_license():
     try:
         with open(license_file, 'r') as f:
             stored_hash = f.read().strip()
-            print(f"Stored license hash: {stored_hash}")
             if stored_hash != hardware_id:
                 print(f"Error: License mismatch. Expected {hardware_id}, got {stored_hash}")
                 print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
                 sys.exit(1)
             else:
-                print("License validated successfully!")
+                print("License validated successfully EMa!")
     except Exception as e:
         print(f"Error: License validation failed: {str(e)}")
         print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
