@@ -95,16 +95,15 @@
                                     <td>{% if part.min_price %} {{ "{:,.2f}".format(part.min_price) }} NKF{% else %}-{% endif %}</td>
                                     <td>{% if part.max_price %} {{ "{:,.2f}".format(part.max_price) }} NKF{% else %}-{% endif %}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary add-to-cart-btn" 
-                                                data-part="{{ {
-                                                    'id': part.id,
-                                                    'name': part.name,
-                                                    'part_number': part.part_number,
-                                                    'min_price': part.min_price|default(0),
-                                                    'max_price': part.max_price|default(0),
-                                                    'stock_level': part.stock_level|default(0),
-                                                    'stock': part.stock
-                                                }|tojson }}">
+                                        <button class="btn btn-sm btn-primary" onclick='showAddToCart({{ {
+                                            "id": part.id,
+                                            "name": part.name,
+                                            "part_number": part.part_number,
+                                            "min_price": part.min_price|default(0),
+                                            "max_price": part.max_price|default(0),
+                                            "stock_level": part.stock_level|default(0),
+                                            "stock": part.stock
+                                        }|tojson|safe }})'>
                                             Add to Cart
                                         </button>
                                     </td>
@@ -296,7 +295,7 @@ function performSearch() {
     
     // Show loading state
     const tbody = document.querySelector('#searchResults tbody');
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
     
     const params = new URLSearchParams({
         query: query,
@@ -317,7 +316,7 @@ function performSearch() {
             tbody.innerHTML = '';
             
             if (parts.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="text-center">No parts found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">No parts found</td></tr>';
                 return;
             }
             
@@ -342,39 +341,29 @@ function performSearch() {
                     <td>${escapejs(part.name) || '-'}</td>
                     <td>${escapejs(part.code) || '-'}</td>
                     <td>${escapejs(part.substitute_part_number) || '-'}</td>
-                    <td>${part.selling_price || '-'}</td>
                     <td>${part.stock_level || 0}</td>
                     <td>${part.min_price ? 'NKF ' + part.min_price.toFixed(2) : '-'}</td>
                     <td>${part.max_price ? 'NKF ' + part.max_price.toFixed(2) : '-'}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary add-to-cart-btn" 
-                                data-part="${escapejs(JSON.stringify({
-                                    id: part.id,
-                                    name: part.name,
-                                    part_number: part.part_number,
-                                    min_price: part.min_price,
-                                    max_price: part.max_price,
-                                    stock_level: part.stock_level,
-                                    stock: part.stock
-                                }))}">
+                        <button class="btn btn-sm btn-primary" onclick='showAddToCart(${JSON.stringify({
+                            id: part.id,
+                            name: part.name,
+                            part_number: part.part_number,
+                            min_price: part.min_price,
+                            max_price: part.max_price,
+                            stock_level: part.stock_level,
+                            stock: part.stock
+                        })})'>
                             Add to Cart
                         </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
-            
-            // Reattach event listeners to new buttons
-            document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const partData = JSON.parse(this.dataset.part);
-                    showAddToCart(partData);
-                });
-            });
         })
         .catch(error => {
             console.error('Error:', error);
-            tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Error loading parts</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error loading parts</td></tr>';
         });
 }
 
@@ -615,15 +604,6 @@ function escapejs(str) {
         .replace(/\t/g, '\\t')
         .replace(/\f/g, '\\f');
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const partData = JSON.parse(this.dataset.part);
-            showAddToCart(partData);
-        });
-    });
-});
 </script>
 
 <style>
