@@ -2,24 +2,62 @@
 
 # Car manufacturers mapping
 CAR_MANUFACTURERS = {
-    'TOYOTA': 'TO',
-    'NISSAN': 'NI',
-    'HONDA': 'HO',
-    'MITSUBISHI': 'MI',
-    'MAZDA': 'MA',
-    'SUBARU': 'SU',
-    'ISUZU': 'IS',
-    'SUZUKI': 'SZ',
-    'DAIHATSU': 'DA',
-    'HINO': 'HI',
-    'BMW': 'BW',
+    'Acura': 'ACU',
+    'Alfa Romeo': 'ALF',
+    'Arola': 'ARO',
+    'Aston Martin': 'AST',
+    'Audi': 'AUD',
+    'Autobianchi': 'AUT',
+    'BMW': 'BMW',
+    'Bricklin': 'BRI',
+    'Cadillac': 'CAD',
+    'Chevrolet': 'CHE',
+    'Chrysler': 'CHR',
+    'Dacia': 'DAC',
+    'Daewoo': 'DAE',
+    'DAF': 'DAF',
+    'Daihatsu': 'DAI',
+    'Datsun': 'DAT',
+    'Dodge': 'DOD',
+    'Fiat': 'FIA',
+    'Ford': 'FOR',
+    'GMC': 'GMC',
+    'Honda': 'HON',
+    'Hyundai': 'HYU',
+    'Infiniti': 'INF',
+    'Isuzu': 'ISU',
+    'Iveco': 'IVE',
+    'Jaguar': 'JAG',
+    'Jeep': 'JEE',
+    'Kia': 'KIA',
+    'Lada': 'LAD',
+    'Lancia': 'LAN',
+    'Land Rover': 'LAND',
+    'Lexus': 'LEX',
+    'Mazda': 'MAZ',
+    'Mercedes-Benz': 'MER',
+    'Mini': 'MIN',
+    'Mitsubishi': 'MIT',
+    'Nissan': 'NIS',
+    'Opel': 'OPE',
+    'Peugeot': 'PEU',
+    'Porsche': 'POR',
+    'Renault': 'REN',
+    'Rivian': 'RIV',
+    'Seat': 'SEA',
+    'Subaru': 'SUB',
+    'Suzuki': 'SUZ',
+    'Tata': 'TAT',
+    'Toyota': 'TOY',
+    'Volkswagen': 'VOLK',
+    'Volvo': 'VOL'
 }
 
 # Quality levels mapping
 QUALITY_LEVELS = {
-    'ORIGINAL': 'O',
-    'SECOND_LEVEL': 'S',
-    'THIRD_LEVEL': 'T'
+    'ORIGINAL': 'W',
+    'SECOND_LEVEL': 'X',
+    'THIRD_LEVEL': 'Z'
 }
 
 def generate_part_code(manufacturer, quality_level, part_number):
@@ -37,8 +75,13 @@ def generate_part_code(manufacturer, quality_level, part_number):
     Returns:
         str: The generated part code
     """
-    # Get manufacturer code
-    manufacturer_code = CAR_MANUFACTURERS.get(manufacturer.upper(), '')
+    # Get manufacturer code - case insensitive lookup
+    manufacturer_code = None
+    for key, value in CAR_MANUFACTURERS.items():
+        if key.upper() == manufacturer.upper():
+            manufacturer_code = value
+            break
+    
     if not manufacturer_code:
         raise ValueError(f"Invalid manufacturer: {manufacturer}")
     
@@ -52,7 +95,7 @@ def generate_part_code(manufacturer, quality_level, part_number):
 
 def get_manufacturer_options():
     """Return list of tuples for manufacturer choices"""
-    return [(key, key.title()) for key in CAR_MANUFACTURERS.keys()]
+    return [(key, key) for key in CAR_MANUFACTURERS.keys()]
 
 def get_quality_level_options():
     """Return list of tuples for quality level choices"""
