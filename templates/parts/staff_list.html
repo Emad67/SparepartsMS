@@ -24,6 +24,8 @@
                 <tr>
                     <th>Part Number</th>
                     <th>Name</th>
+                    <th>Code</th>
+                    <th>Substitute Part Number</th>
                     <th>Location</th>
                     <th>Stock Level</th>
                     <th>Min Stock</th>
@@ -41,6 +43,8 @@
                 <tr>
                     <td>{{ part.part_number }}</td>
                     <td>{{ part.name }}</td>
+                    <td>{{ part.code|default('-') }}</td>
+                    <td>{{ part.substitute_part_number|default('-') }}</td>
                     <td>{{ part.location }}</td>
                     <td>{{ part.stock_level }}</td>
                     <td>{{ part.min_stock }}</td>

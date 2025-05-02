@@ -7,44 +7,36 @@
     <form method="POST" enctype="multipart/form-data" id="addPartForm">
         {{ form.csrf_token }}
         <div class="text-end mb-3">
-            <button type="submit" class="btn btn-primary">Add Part</button>
-            <a href="{{ url_for('parts.staff_list_parts' if is_staff else 'parts.list_parts') }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" title="Add new part to inventory">Add Part</button>
+            <a href="{{ url_for('parts.staff_list_parts' if is_staff else 'parts.list_parts') }}" class="btn btn-secondary" title="Cancel and return to parts list">Cancel</a>
         </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
                     <label for="manufacturer" class="form-label">Manufacturer *</label>
-                    {{ form.manufacturer(class="form-select", id="manufacturer") }}
-                    {% if form.manufacturer.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.manufacturer.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                    <select class="form-select" id="manufacturer" name="manufacturer" required autocomplete="organization">
+                        <option value="">Select Manufacturer</option>
+                        <!-- Options will be populated by JS -->
+                    </select>
                 </div>
                 
                 <div class="mb-3">
                     <label for="quality_level" class="form-label">Quality Level *</label>
-                    {{ form.quality_level(class="form-select", id="quality_level") }}
-                    {% if form.quality_level.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.quality_level.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                    <select class="form-select" id="quality_level" name="quality_level" required autocomplete="off">
+                        <option value="">Select Quality Level</option>
+                        <!-- Options will be populated by JS -->
+                    </select>
                 </div>
                 
                 <div class="mb-3">
                     <label for="part_number" class="form-label">Part Number *</label>
-                    {{ form.part_number(class="form-control", id="part_number") }}
+                    {{ form.part_number(class="form-control", id="part_number", autocomplete="off") }}
                     <div class="invalid-feedback">This part number already exists</div>
                 </div>
                 
                 <div class="mb-3">
                     <label for="name" class="form-label">Name *</label>
-                    {{ form.name(class="form-control", id="name") }}
+                    {{ form.name(class="form-control", id="name", autocomplete="off") }}
                     {% if form.name.errors %}
                         <div class="invalid-feedback d-block">
                             {% for error in form.name.errors %}
@@ -273,6 +265,10 @@ $(document).ready(function() {
         });
     });
     
+    // Update code when manufacturer or quality level changes
+    $('#manufacturer').on('change', updateCode);
+    $('#quality_level').on('change', updateCode);
+    
     // Validate price range
     $('#max_price').on('change', function() {
         var minPrice = parseFloat($('#min_price').val()) || 0;
@@ -288,27 +284,7 @@ $(document).ready(function() {
     $('#addPartForm').on('submit', function(e) {
         if ($('#part_number').hasClass('is-invalid')) {
             e.preventDefault();
-            alert('Please fix the errors before submitting');
-            return false;
-        }
-        
-        // Validate required fields
-        var requiredFields = ['manufacturer', 'quality_level', 'part_number', 'name', 'warehouse', 'unit', 'cost_price', 'selling_price'];
-        var isValid = true;
-        
-        requiredFields.forEach(function(field) {
-            var element = $('#' + field);
-            if (!element.val()) {
-                element.addClass('is-invalid');
-                isValid = false;
-            } else {
-                element.removeClass('is-invalid');
-            }
-        });
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields');
+            alert('This part number already exists');
             return false;
         }
     });
@@ -316,22 +292,62 @@ $(document).ready(function() {
 
 // Manufacturer and quality level codes mapping
 const manufacturerCodes = {
-    'TOYOTA': 'TO',
-    'NISSAN': 'NI',
-    'HONDA': 'HO',
-    'MITSUBISHI': 'MI',
-    'MAZDA': 'MA',
-    'SUBARU': 'SU',
-    'ISUZU': 'IS',
-    'SUZUKI': 'SZ',
-    'DAIHATSU': 'DA',
-    'HINO': 'HI'
+    'Acura'	: 'ACU',
+    'Alfa Romeo'	: 'ALF',
+    'Arola'	: 'ARO',
+    'Aston Martin'	: 'AST',
+    'Audi' 	: 'AUD',
+    'Autobianchi'	: 'AUT',
+    'BMW'  	: 'BMW',
+    'Bricklin'	: 'BRI',
+    'Cadillac'	: 'CAD',
+    'Chevrolet'	: 'CHE',
+    'Chrysler'	: 'CHR',
+    'Dacia'	: 'DAC',
+    'Daewoo'	: 'DAE',
+    'DAF'  	: 'DAF',
+    'Daihatsu'	: 'DAI',
+    'Datsun'	: 'DAT',
+    'Dodge'	: 'DOD',
+    'Fiat' 	: 'FIA',
+    'Ford' 	: 'FOR',
+    'GMC'  	: 'GMC',
+    'Honda'	: 'HON',
+    'Hyundai'	: 'HYU',
+    'Infiniti'	: 'INF',
+    'Isuzu'	: 'ISU',
+    'Iveco'	: 'IVE',
+    'Jaguar'	: 'JAG',
+    'Jeep' 	: 'JEE',
+    'Kia'  	: 'KIA',
+    'Lada' 	: 'LAD',
+    'Lancia'	: 'LAN',
+    'Land Rover'	: 'LAND',
+    'Lexus'	: 'LEX',
+    'Mazda'	: 'MAZ',
+    'Mercedes-Benz'	: 'MER',
+    'Mini' 	: 'MIN',
+    'Mitsubishi'	: 'MIT',
+    'Nissan'	: 'NIS',
+    'Opel' 	: 'OPE',
+    'Peugeot'	: 'PEU',
+    'Porsche'	: 'POR',
+    'Renault'	: 'REN',
+    'Rivian'	: 'RIV',
+    'Seat' 	: 'SEA',
+    'Subaru'	: 'SUB',
+    'Suzuki'	: 'SUZ',
+    'Tata' 	: 'TAT',
+    'Toyota'	: 'TOY',
+    'Volkswagen'	: 'VOLK',
+    'Volvo'	: 'VOL',
+
 };
 
 const qualityCodes = {
-    'ORIGINAL': 'O',
-    'SECOND_LEVEL': 'S',
-    'THIRD_LEVEL': 'T'
+    'ORIGINAL': 'W',
+    'SECOND_LEVEL': 'X',
+    'THIRD_LEVEL': 'Z'
 };
 
 // Update code field when manufacturer, quality level, or part number changes
@@ -350,6 +366,24 @@ const updateCode = () => {
 document.getElementById('manufacturer').addEventListener('change', updateCode);
 document.getElementById('quality_level').addEventListener('change', updateCode);
 document.getElementById('part_number').addEventListener('input', updateCode);
+
+// Populate Manufacturer Dropdown
+const manufacturerSelect = document.getElementById('manufacturer');
+Object.keys(manufacturerCodes).forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.text = name;
+    manufacturerSelect.appendChild(option);
+});
+
+// Populate Quality Level Dropdown
+const qualitySelect = document.getElementById('quality_level');
+Object.keys(qualityCodes).forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.text = name.replace('_', ' ').replace('LEVEL', 'Level').charAt(0) + name.slice(1).toLowerCase();
+    qualitySelect.appendChild(option);
+});
 </script>
 
 {% if is_staff %}

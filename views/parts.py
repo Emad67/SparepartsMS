@@ -119,134 +119,143 @@ def add_part():
     print(f"Form data: {request.form}")  # Debug line
     print(f"Form errors: {form.errors}")  # Debug line
     
-    if form.validate_on_submit():
-        try:
-            print("Form validated successfully")  # Debug line
-            # Generate part code
-            part_code = generate_part_code(
-                form.manufacturer.data,
-                form.quality_level.data,
-                form.part_number.data
-            )
-            print(f"Generated part code: {part_code}")  # Debug line
-
-            # Handle barcode properly
-            barcode = request.form.get('barcode', '').strip()
-            if barcode:  # Use the provided barcode if it's not empty
-                # Validate barcode uniqueness
-                existing_part = Part.query.filter_by(barcode=barcode).first()
-                if existing_part:
-                    flash('Barcode must be unique. Another part already uses this barcode.', 'error')
-                    return redirect(url_for('parts.add_part'))
-            else:
-                # Generate a sequential barcode if none is provided
-                barcode = generate_sequential_barcode()
-
-            # Create new part
-            part = Part(
-                part_number=form.part_number.data,
-                name=form.name.data,
-                manufacturer=form.manufacturer.data,
-                quality_level=form.quality_level.data,
-                location=form.location.data,
-                code=part_code,  # Use the generated part code
-                substitute_part_number=request.form.get('substitute_part_number'),
-                stock_level=int(request.form.get('initial_stock', 0)),
-                min_stock=int(request.form.get('min_stock', 0)),
-                weight=float(request.form.get('weight')) if request.form.get('weight') else None,
-                height=float(request.form.get('height')) if request.form.get('height') else None,
-                length=float(request.form.get('length')) if request.form.get('length') else None,
-                width=float(request.form.get('width')) if request.form.get('width') else None,
-                color=request.form.get('color'),
-                description=form.description.data,
-                unit=request.form.get('unit'),
-                category_id=request.form.get('category_id') or None,
-                supplier_id=request.form.get('supplier_id') or None,
-                barcode=barcode,
-                cost_price=form.cost_price.data,
-                selling_price=form.selling_price.data
-            )
-            print(f"Created part object: {part}")  # Debug line
-            
-            # Only set price fields if user is not staff
-            if not is_staff:
-                part.min_price = float(request.form.get('min_price')) if request.form.get('min_price') else None
-                part.max_price = float(request.form.get('max_price')) if request.form.get('max_price') else None
-            
-            # Handle image upload
-            if 'image' in request.files:
-                file = request.files['image']
-                if file and allowed_file(file.filename):
-                    try:
-                        filename = secure_filename(file.filename)
-                        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
-                        
-                        # Create upload folder if it doesn't exist
-                        if not os.path.exists(upload_folder):
-                            os.makedirs(upload_folder)
-                            
-                        file.save(os.path.join(upload_folder, filename))
-                        part.image_url = f'/static/uploads/{filename}'
-                    except Exception as e:
-                        flash(f'Error uploading image: {str(e)}', 'error')
-                        return redirect(url_for('parts.add_part'))
-            
-            # Add part to database first
-            db.session.add(part)
-            db.session.flush()  # Flush to get the part ID
-            print(f"Part added to session, ID: {part.id}")  # Debug line
-            
-            # Create warehouse stock entry
-            warehouse_id = request.form.get('warehouse_id')
-            if not warehouse_id:
-                flash('Warehouse selection is required', 'error')
-                db.session.rollback()
-                return redirect(url_for('parts.add_part'))
-                
-            warehouse = Warehouse.query.get(warehouse_id)
-            if not warehouse:
-                flash('Selected warehouse not found', 'error')
-                db.session.rollback()
-                return redirect(url_for('parts.add_part'))
-            
-            warehouse_stock = WarehouseStock(
-                warehouse_id=warehouse_id,
-                part_id=part.id,
-                quantity=int(request.form.get('initial_stock', 0))
-            )
-            db.session.add(warehouse_stock)
-            db.session.flush()
-            
-            # Create bin card entry for initial stock
-            initial_stock = int(request.form.get('initial_stock', 0))
-            if initial_stock > 0:
-                bin_card = BinCard(
-                    part_id=part.id,
-                    transaction_type='in',
-                    quantity=initial_stock,
-                    reference_type='initial_stock',
-                    reference_id=warehouse_stock.id,
-                    balance=initial_stock,
-                    user_id=current_user.id,
-                    notes=f'Initial stock in warehouse {warehouse.name}'
+    if request.method == 'POST':
+        print("POST request received")  # Debug line
+        print(f"Form data: {request.form}")  # Debug line
+        print(f"Files: {request.files}")  # Debug line
+        
+        if form.validate_on_submit():
+            try:
+                print("Form validated successfully")  # Debug line
+                # Generate part code
+                part_code = generate_part_code(
+                    form.manufacturer.data,
+                    form.quality_level.data,
+                    form.part_number.data
                 )
-                db.session.add(bin_card)
-            
-            db.session.commit()
-            print("Database commit successful")  # Debug line
-            flash('Part added successfully', 'success')
-            return redirect(url_for('parts.list_parts'))
-            
-        except IntegrityError as e:
-            print(f"IntegrityError: {str(e)}")  # Debug line
-            db.session.rollback()
-            flash(f'Database error: {str(e)}', 'error')
-            return redirect(url_for('parts.add_part'))
-        except Exception as e:
-            print(f"Exception: {str(e)}")  # Debug line
-            db.session.rollback()
-            flash(f'Error adding part: {str(e)}', 'error')
-            return redirect(url_for('parts.add_part'))
+                print(f"Generated part code: {part_code}")  # Debug line
+
+                # Handle barcode properly
+                barcode = request.form.get('barcode', '').strip()
+                if barcode:  # Use the provided barcode if it's not empty
+                    # Validate barcode uniqueness
+                    existing_part = Part.query.filter_by(barcode=barcode).first()
+                    if existing_part:
+                        flash('Barcode must be unique. Another part already uses this barcode.', 'error')
+                        return redirect(url_for('parts.add_part'))
+                else:
+                    # Generate a sequential barcode if none is provided
+                    barcode = generate_sequential_barcode()
+
+                # Create new part
+                part = Part(
+                    part_number=form.part_number.data,
+                    name=form.name.data,
+                    manufacturer=form.manufacturer.data,
+                    quality_level=form.quality_level.data,
+                    location=form.location.data,
+                    code=part_code,  # Use the generated part code
+                    substitute_part_number=request.form.get('substitute_part_number'),
+                    stock_level=int(request.form.get('initial_stock', 0)),
+                    min_stock=int(request.form.get('min_stock', 0)),
+                    weight=float(request.form.get('weight')) if request.form.get('weight') else None,
+                    height=float(request.form.get('height')) if request.form.get('height') else None,
+                    length=float(request.form.get('length')) if request.form.get('length') else None,
+                    width=float(request.form.get('width')) if request.form.get('width') else None,
+                    color=request.form.get('color'),
+                    description=form.description.data,
+                    unit=request.form.get('unit'),
+                    category_id=request.form.get('category_id') or None,
+                    supplier_id=request.form.get('supplier_id') or None,
+                    barcode=barcode,
+                    cost_price=form.cost_price.data,
+                    selling_price=form.selling_price.data
+                )
+                print(f"Created part object: {part}")  # Debug line
+                
+                # Only set price fields if user is not staff
+                if not is_staff:
+                    part.min_price = float(request.form.get('min_price')) if request.form.get('min_price') else None
+                    part.max_price = float(request.form.get('max_price')) if request.form.get('max_price') else None
+                
+                # Handle image upload
+                if 'image' in request.files:
+                    file = request.files['image']
+                    if file and allowed_file(file.filename):
+                        try:
+                            filename = secure_filename(file.filename)
+                            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+                            
+                            # Create upload folder if it doesn't exist
+                            if not os.path.exists(upload_folder):
+                                os.makedirs(upload_folder)
+                                
+                            file.save(os.path.join(upload_folder, filename))
+                            part.image_url = f'/static/uploads/{filename}'
+                        except Exception as e:
+                            flash(f'Error uploading image: {str(e)}', 'error')
+                            return redirect(url_for('parts.add_part'))
+                
+                # Add part to database first
+                db.session.add(part)
+                db.session.flush()  # Flush to get the part ID
+                print(f"Part added to session, ID: {part.id}")  # Debug line
+                
+                # Create warehouse stock entry
+                warehouse_id = request.form.get('warehouse_id')
+                if not warehouse_id:
+                    flash('Warehouse selection is required', 'error')
+                    db.session.rollback()
+                    return redirect(url_for('parts.add_part'))
+                    
+                warehouse = Warehouse.query.get(warehouse_id)
+                if not warehouse:
+                    flash('Selected warehouse not found', 'error')
+                    db.session.rollback()
+                    return redirect(url_for('parts.add_part'))
+                
+                warehouse_stock = WarehouseStock(
+                    warehouse_id=warehouse_id,
+                    part_id=part.id,
+                    quantity=int(request.form.get('initial_stock', 0))
+                )
+                db.session.add(warehouse_stock)
+                db.session.flush()
+                
+                # Create bin card entry for initial stock
+                initial_stock = int(request.form.get('initial_stock', 0))
+                if initial_stock > 0:
+                    bin_card = BinCard(
+                        part_id=part.id,
+                        transaction_type='in',
+                        quantity=initial_stock,
+                        reference_type='initial_stock',
+                        reference_id=warehouse_stock.id,
+                        balance=initial_stock,
+                        user_id=current_user.id,
+                        notes=f'Initial stock in warehouse {warehouse.name}'
+                    )
+                    db.session.add(bin_card)
+                
+                db.session.commit()
+                print("Database commit successful")  # Debug line
+                flash('Part added successfully', 'success')
+                return redirect(url_for('parts.list_parts'))
+                
+            except IntegrityError as e:
+                print(f"IntegrityError: {str(e)}")  # Debug line
+                db.session.rollback()
+                flash(f'Database error: {str(e)}', 'error')
+                return redirect(url_for('parts.add_part'))
+            except Exception as e:
+                print(f"Exception: {str(e)}")  # Debug line
+                db.session.rollback()
+                flash(f'Error adding part: {str(e)}', 'error')
+                return redirect(url_for('parts.add_part'))
+        else:
+            print("Form validation failed")  # Debug line
+            print(f"Form errors: {form.errors}")  # Debug line
+            flash('Please correct the errors in the form', 'error')
             
     categories = Category.query.all()
     suppliers = Supplier.query.all()

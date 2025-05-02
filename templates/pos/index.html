@@ -595,6 +595,7 @@ function updateCartTotal(total) {
 }
 
 function escapejs(str) {
+    if (str === null || str === undefined) return '';
     return str
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "\\'")
