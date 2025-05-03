@@ -14,6 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 import xlsxwriter
+from views.utils import role_required
 from utils.date_utils import (
     parse_date_range, format_date, format_datetime,
     get_start_of_day, get_end_of_day, get_date_range
@@ -32,6 +33,7 @@ def finance_access_required(f):
 
 @reports.route('/reports')
 @login_required
+@role_required('admin', 'manager')
 def index():
     return render_template('reports/index.html')
 
@@ -178,6 +180,7 @@ def sales():
 
 @reports.route('/reports/purchases')
 @login_required
+@role_required('admin', 'manager')
 def purchases():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
@@ -218,6 +221,7 @@ def purchases():
 @reports.route('/reports/revenue')
 @login_required
 @finance_access_required
+@role_required('admin', 'manager')
 def revenue():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
@@ -257,6 +261,7 @@ def revenue():
 @reports.route('/reports/expenses')
 @login_required
 @finance_access_required
+@role_required('admin', 'manager')
 def expenses():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
@@ -296,6 +301,7 @@ def expenses():
 @reports.route('/reports/profit')
 @login_required
 @finance_access_required
+@role_required('admin', 'manager')
 def profit():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
@@ -365,6 +371,7 @@ def profit():
 
 @reports.route('/reports/credits')
 @login_required
+@role_required('admin', 'manager')
 def credits():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')
@@ -1139,6 +1146,7 @@ def export_pdf(report_type, start_datetime, end_datetime):
 
 @reports.route('/reports/disposals')
 @login_required
+@role_required('admin', 'manager')
 def disposals():
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')

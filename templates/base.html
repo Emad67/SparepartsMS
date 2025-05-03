@@ -97,7 +97,7 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if current_user.role != 'staff' %}
+                    {% if current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}" 
                            href="{{ url_for('reports.index') }}">
@@ -113,7 +113,7 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if current_user.is_authenticated and current_user.role in ['admin', 'manager'] %}
+                    {% if current_user.is_authenticated and current_user.role in ['admin', 'manager', 'staff'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('transfers.') %}active{% endif %}" 
                            href="{{ url_for('transfers.list_transfers') }}">
