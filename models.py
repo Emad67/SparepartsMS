@@ -477,6 +477,10 @@ class ExchangeRate(db.Model):
         ).order_by(ExchangeRate.effective_from.desc()).first()
         return rate.rate if rate else 15.0  # Default rate
 
+class PartName(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+
 # # Add SQLAlchemy event listeners
 # @event.listens_for(Purchase, 'after_insert')
 # @event.listens_for(Purchase, 'after_update')

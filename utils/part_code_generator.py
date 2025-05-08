@@ -57,6 +57,7 @@ CAR_MANUFACTURERS = {
 QUALITY_LEVELS = {
     'ORIGINAL': 'W',
     'SECOND_LEVEL': 'X',
+    'GOOD_QUALITY': 'Y',
     'THIRD_LEVEL': 'Z'
 }
 
@@ -102,5 +103,6 @@ def get_quality_level_options():
     return [
         ('ORIGINAL', 'Original'),
         ('SECOND_LEVEL', 'Second Level'),
+        ('GOOD_QUALITY', 'Good Quality'),
         ('THIRD_LEVEL', 'Third Level')
     ] 
