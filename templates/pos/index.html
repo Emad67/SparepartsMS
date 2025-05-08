@@ -90,19 +90,20 @@
                                     <td>{{ part.name|default('-') }}</td>
                                     <td>{{ part.code|default('-') }}</td>
                                     <td>{{ part.substitute_part_number|default('-') }}</td>
-                                    <td>{{ part.selling_price|default('-') }}</td>
+                                    <td>{% if part.selling_price %}NKF {{ "{:,.2f}".format(part.selling_price) }}{% else %}-{% endif %}</td>
                                     <td>{{ part.stock_level|default(0) }}</td>
-                                    <td>{% if part.min_price %} {{ "{:,.2f}".format(part.min_price) }} NKF{% else %}-{% endif %}</td>
-                                    <td>{% if part.max_price %} {{ "{:,.2f}".format(part.max_price) }} NKF{% else %}-{% endif %}</td>
+                                    <td>{% if part.min_price %}NKF {{ "{:,.2f}".format(part.min_price) }}{% else %}-{% endif %}</td>
+                                    <td>{% if part.max_price %}NKF {{ "{:,.2f}".format(part.max_price) }}{% else %}-{% endif %}</td>
                                     <td>
                                         <button class="btn btn-sm btn-primary" onclick='showAddToCart({{ {
                                             "id": part.id,
-                                            "name": part.name,
-                                            "part_number": part.part_number,
+                                            "name": part.name|default(''),
+                                            "part_number": part.part_number|default(''),
+                                            "selling_price": part.selling_price|default(0),
                                             "min_price": part.min_price|default(0),
                                             "max_price": part.max_price|default(0),
                                             "stock_level": part.stock_level|default(0),
-                                            "stock": part.stock
+                                            "stock": part.stock|default({})
                                         }|tojson|safe }})'>
                                             Add to Cart
                                         </button>
@@ -341,6 +342,7 @@ function performSearch() {
                     <td>${escapejs(part.name) || '-'}</td>
                     <td>${escapejs(part.code) || '-'}</td>
                     <td>${escapejs(part.substitute_part_number) || '-'}</td>
+                    <td>${part.selling_price ? 'NKF ' + part.selling_price.toFixed(2) : '-'}</td>
                     <td>${part.stock_level || 0}</td>
                     <td>${part.min_price ? 'NKF ' + part.min_price.toFixed(2) : '-'}</td>
                     <td>${part.max_price ? 'NKF ' + part.max_price.toFixed(2) : '-'}</td>
@@ -349,6 +351,7 @@ function performSearch() {
                             id: part.id,
                             name: part.name,
                             part_number: part.part_number,
+                            selling_price: part.selling_price,
                             min_price: part.min_price,
                             max_price: part.max_price,
                             stock_level: part.stock_level,
@@ -373,9 +376,9 @@ function showAddToCart(part) {
     // Update modal content
     document.getElementById('partId').value = part.id;
     document.getElementById('partDetails').textContent = 
-        `${part.part_number} - ${part.name}`;
+        `${part.part_number || '-'} - ${part.name || '-'}`;
     document.getElementById('priceRange').textContent = 
-        `NKF ${part.min_price.toFixed(2)} - NKF ${part.max_price.toFixed(2)}`;
+        `NKF ${(part.min_price || 0).toFixed(2)} - NKF ${(part.max_price || 0).toFixed(2)}`;
     
     // Populate warehouses dropdown
     const warehouseSelect = document.getElementById('warehouse');
@@ -406,7 +409,7 @@ function showAddToCart(part) {
     
     // Reset quantity and price fields
     document.getElementById('quantity').value = '1';
-    document.getElementById('price').value = part.max_price;
+    document.getElementById('price').value = part.selling_price || part.max_price || 0;
     
     // Update available stock display
     updateAvailableStock();
@@ -461,10 +464,10 @@ function updateCartDisplay() {
         total += itemTotal;
         
         tr.innerHTML = `
-            <td>${item.partNumber} - ${item.name}<br>
-                <small class="text-muted">From: ${item.warehouseName}</small></td>
-            <td>${item.quantity}</td>
-            <td>NKF ${item.price.toFixed(2)}</td>
+            <td>${item.partNumber || '-'} - ${item.name || '-'}<br>
+                <small class="text-muted">From: ${item.warehouseName || '-'}</small></td>
+            <td>${item.quantity || 0}</td>
+            <td>NKF ${(item.price || 0).toFixed(2)}</td>
             <td>NKF ${itemTotal.toFixed(2)}</td>
             <td>
                 <button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">
@@ -590,8 +593,8 @@ function showFullImage(imageUrl, partName) {
 }
 
 function updateCartTotal(total) {
-    document.getElementById('cartTotal').textContent = `NKF ${total.toFixed(2)}`;
-    document.getElementById('confirmSaleAmount').textContent = `NKF ${total.toFixed(2)}`;
+    document.getElementById('cartTotal').textContent = `NKF ${(total || 0).toFixed(2)}`;
+    document.getElementById('confirmSaleAmount').textContent = `NKF ${(total || 0).toFixed(2)}`;
 }
 
 function escapejs(str) {

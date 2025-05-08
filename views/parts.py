@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app  # Add current_app here
 from flask_login import login_required, current_user
-from models import db, Part, Category, Supplier, BinCard, Warehouse, WarehouseStock
+from models import db, Part, Category, Supplier, BinCard, Warehouse, WarehouseStock, PartName
 from werkzeug.utils import secure_filename
 from views.utils import role_required
 import os
@@ -200,6 +200,11 @@ def add_part():
                 db.session.add(part)
                 db.session.flush()  # Flush to get the part ID
                 print(f"Part added to session, ID: {part.id}")  # Debug line
+                
+                # Add the part name to PartName table if not already present
+                name = form.name.data.strip()
+                if not PartName.query.filter_by(name=name).first():
+                    db.session.add(PartName(name=name))
                 
                 # Create warehouse stock entry
                 warehouse_id = request.form.get('warehouse_id')
@@ -540,3 +545,9 @@ def export_parts():
     except Exception as e:
         flash(f'Error exporting parts: {str(e)}', 'error')
         return redirect(url_for('parts.list_parts'))
+
+@parts.route('/api/part-names')
+def part_names():
+    q = request.args.get('q', '')
+    results = PartName.query.filter(PartName.name.ilike(f'%{q}%')).limit(10).all()
+    return jsonify([p.name for p in results])
