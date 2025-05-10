@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Bulk Purchase Entry</h2>
+    <form id="bulkPurchaseForm">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="aedToUsd" class="form-label">AED TO USD</label>
+                <input type="number" class="form-control" id="aedToUsd" name="aed_to_usd" step="0.01" required>
+            </div>
+            <div class="col-md-4">
+                <label for="usdToNkf" class="form-label">USD TO NKF</label>
+                <input type="number" class="form-control" id="usdToNkf" name="usd_to_nkf" step="0.01" required>
+            </div>
+            <div class="col-md-4">
+                <label for="weightPrice" class="form-label">Weight Price</label>
+                <input type="number" class="form-control" id="weightPrice" name="weight_price" step="0.01" required>
+            </div>
+        </div>
+        <div class="table-responsive mb-3">
+            <table class="table table-bordered" id="bulkTable">
+                <thead>
+                    <tr>
+                        <th>Part No</th>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Weight</th>
+                        <th>Unit AED Price</th>
+                        <th>Calculated Fields</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-success" id="addRowBtn">Add Row</button>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Bulk Purchase</button>
+        <a href="{{ url_for('purchases.list_purchases') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// JavaScript for dynamic row addition and calculations will go here
+</script>
+{% endblock %}
