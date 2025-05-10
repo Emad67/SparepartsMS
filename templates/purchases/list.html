@@ -13,9 +13,7 @@
                 <option value="cancelled">Cancelled</option>
             </select>
         </div>
-        <a href="{{ url_for('purchases.add_purchase') }}" class="btn btn-primary">New Purchase Order</a>
-        <a href="{{ url_for('purchases.bulk_purchase') }}" class="btn btn-secondary ms-2">Bulk Purchase Entry</a>
-
+        <a href="{{ url_for('purchases.add_purchase') }}" class="btn btn-primary">New Purchase Order</a><a href="{{ url_for('purchases.bulk_purchase') }}" class="btn btn-secondary">Bulk Purchase Entry</a>
     </div>
     
     <table class="table table-striped">

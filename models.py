@@ -107,38 +107,24 @@ class Part(db.Model):
         total_cost = 0
         total_quantity = 0
         
-        current_app.logger.info(f"\nCalculating cost price for Part ID: {self.id}")
-        current_app.logger.info(f"Initial cost price: {self.cost_price}")
-        
         # Include regular purchases
-        current_app.logger.info("\nRegular Purchases:")
         for purchase in self.purchases:
-            current_app.logger.info(f"Purchase ID: {purchase.id}, Status: {purchase.status}, Unit Cost: {purchase.unit_cost}, Quantity: {purchase.quantity}")
-            if purchase.status == 'received' and not purchase.voided:  # Only include received and non-voided purchases
+            if purchase.status == 'received':  # Only include received purchases
                 total_cost += purchase.unit_cost * purchase.quantity
                 total_quantity += purchase.quantity
         
         # Include credit purchases
-        current_app.logger.info("\nCredit Purchases:")
         for credit_purchase in self.credit_purchases:
-            current_app.logger.info(f"Credit Purchase ID: {credit_purchase.id}, Status: {credit_purchase.status}, Price: {credit_purchase.price}, Quantity: {credit_purchase.quantity}")
-            if credit_purchase.status == 'paid' and not credit_purchase.voided:  # Only include paid and non-voided credit purchases
+            if credit_purchase.status == 'paid':  # Only include paid credit purchases
                 total_cost += credit_purchase.price * credit_purchase.quantity
                 total_quantity += credit_purchase.quantity
         
         if total_quantity > 0:
             new_cost_price = total_cost / total_quantity
-            current_app.logger.info(f"\nCalculation Results:")
-            current_app.logger.info(f"Total cost: {total_cost}")
-            current_app.logger.info(f"Total quantity: {total_quantity}")
-            current_app.logger.info(f"New cost price: {new_cost_price}")
-            
-            # Update the cost price
             self.cost_price = new_cost_price
-            db.session.add(self)  # Ensure the part is added to the session
-            db.session.flush()  # Force the update to be written to the database
+            db.session.add(self)
+            db.session.flush()
         else:
-            current_app.logger.info("\nNo valid purchases found for cost price calculation")
             new_cost_price = self.cost_price  # Keep the existing cost price if no valid purchases
         
         return new_cost_price

@@ -91,7 +91,7 @@ def validate_license():
                 print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")
                 sys.exit(1)
             else:
-                print("License validated successfully EMa!")
+                print("License validated successfully!")
     except Exception as e:
         print(f"Error: License validation failed: {str(e)}")
         print("Please contact: Aman Kflom (07229417) or Nesredin Abdelrahim (07546658)")

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from models import db, Purchase, Part, Supplier, FinancialTransaction, BinCard, Warehouse, WarehouseStock, ExchangeRate
 from datetime import datetime
@@ -8,6 +8,7 @@ from utils.currency import get_nkf_amount  # Import the utility function
 from sqlalchemy.orm import joinedload
 from sqlalchemy import inspect
 from flask import current_app
+import random
 
 purchases = Blueprint('purchases', __name__)
 
@@ -15,10 +16,126 @@ purchases = Blueprint('purchases', __name__)
 @login_required
 @role_required('admin', 'manager')
 def list_purchases():
-    # purchases = Purchase.query.order_by(Purchase.purchase_date.desc()).all()
-    # return render_template('purchases/list.html', purchases=purchases)
     purchases = Purchase.query.filter(Purchase.status != 'cancelled').order_by(Purchase.purchase_date.desc()).all()
     return render_template('purchases/list.html', purchases=purchases)
+
+@purchases.route('/purchases/bulk', methods=['GET', 'POST'])
+@login_required
+@role_required('admin', 'manager')
+def bulk_purchase():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            if not data or 'items' not in data:
+                return jsonify({'success': False, 'message': 'No items provided'}), 400
+
+            warehouse_id = data.get('warehouse_id')
+            supplier_id = data.get('supplier_id')
+            if not warehouse_id:
+                return jsonify({'success': False, 'message': 'Warehouse is required'}), 400
+            if not supplier_id:
+                return jsonify({'success': False, 'message': 'Supplier is required'}), 400
+
+            # Start a transaction
+            db.session.begin_nested()
+
+            # Process each item
+            for item in data['items']:
+                part_id = item.get('part_id')
+                quantity = item.get('quantity')
+                unit_cost = item.get('total_unit_price')  # Use total unit price in NKF
+                total_cost = unit_cost * quantity
+
+                if not all([part_id, quantity, unit_cost]):
+                    raise ValueError('Missing required fields in item data')
+
+                # Generate unique invoice number
+                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                random_suffix = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+                invoice_number = f'BULK-{timestamp}-{random_suffix}'
+
+                # Create purchase entry
+                purchase = Purchase(
+                    part_id=part_id,
+                    warehouse_id=warehouse_id,
+                    supplier_id=supplier_id,
+                    quantity=quantity,
+                    unit_cost=unit_cost,
+                    total_cost=total_cost,
+                    status='received',  # Mark as received immediately
+                    invoice_number=invoice_number,
+                    user_id=current_user.id
+                )
+                db.session.add(purchase)
+
+                # Update warehouse stock
+                warehouse_stock = WarehouseStock.query.filter_by(
+                    warehouse_id=warehouse_id,
+                    part_id=part_id
+                ).first()
+
+                if not warehouse_stock:
+                    warehouse_stock = WarehouseStock(
+                        warehouse_id=warehouse_id,
+                        part_id=part_id,
+                        quantity=quantity
+                    )
+                    db.session.add(warehouse_stock)
+                else:
+                    warehouse_stock.quantity += quantity
+
+                # Update part stock level
+                part = Part.query.get(part_id)
+                if not part:
+                    raise ValueError(f'Part not found: {part_id}')
+                part.stock_level += quantity
+
+                # Create bincard entry
+                bincard = BinCard(
+                    part_id=part_id,
+                    transaction_type='in',
+                    quantity=quantity,
+                    reference_type='purchase',
+                    reference_id=purchase.id,
+                    balance=part.stock_level,
+                    user_id=current_user.id,
+                    notes=f'Bulk purchase received at NKF {unit_cost} per unit in {purchase.warehouse.name}'
+                )
+                db.session.add(bincard)
+
+                # Create financial transaction
+                financial_transaction = FinancialTransaction(
+                    type='expense',
+                    category='purchase',
+                    amount=total_cost,
+                    description=f'Bulk purchase received: {quantity} units of {part.name}',
+                    reference_id=str(purchase.id),
+                    user_id=current_user.id,
+                    date=datetime.utcnow(),
+                    exchange_rate=ExchangeRate.get_rate_for_date()
+                )
+                db.session.add(financial_transaction)
+
+                # Update part cost price
+                db.session.refresh(part)
+                new_cost_price = part.calculate_cost_price()
+                part.cost_price = new_cost_price
+                db.session.add(part)
+                db.session.flush()
+
+            # Commit all changes
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Bulk purchase processed successfully'})
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error in bulk_purchase: {str(e)}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+    parts = Part.query.all()
+    warehouses = Warehouse.query.all()
+    suppliers = Supplier.query.all()
+    return render_template('purchases/bulk_entry.html', parts=parts, warehouses=warehouses, suppliers=suppliers)
 
 @purchases.route('/purchases/add', methods=['GET', 'POST'])
 @login_required
