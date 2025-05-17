@@ -120,6 +120,8 @@
                             <i class="bi bi-arrow-left-right"></i> Transfers
                         </a>
                     </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated and current_user.role in ['admin', 'manager'] %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint and request.endpoint.startswith('disposals.') %}active{% endif %}" 
                            href="{{ url_for('disposals.list_disposals') }}">

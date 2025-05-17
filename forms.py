@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, TextAreaField, FloatField
-from wtforms.validators import DataRequired, Email, EqualTo
+from wtforms.validators import DataRequired, Email, EqualTo, Optional
 from utils.part_code_generator import get_manufacturer_options, get_quality_level_options
 
 class RegistrationForm(FlaskForm):
@@ -15,8 +15,8 @@ class PartForm(FlaskForm):
     part_number = StringField('Part Number', validators=[DataRequired()])
     name = StringField('Name', validators=[DataRequired()])
     description = TextAreaField('Description')
-    cost_price = FloatField('Cost Price', validators=[DataRequired()])
-    selling_price = FloatField('Selling Price', validators=[DataRequired()])
+    cost_price = FloatField('Cost Price', validators=[Optional()])
+    selling_price = FloatField('Selling Price', validators=[Optional()])
     location = StringField('Location')
     submit = SubmitField('Add Part')
 
