@@ -27,7 +27,7 @@ populate_dummy_data.py
 
 
 # Flask
-instance/
+
 .webassets-cache
 *.db
 *.sqlite3
