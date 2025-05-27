@@ -2,6 +2,7 @@
 
 # Car manufacturers mapping
 CAR_MANUFACTURERS = {
+    'All' : 'All',
     'Acura': 'ACU',
     'Alfa Romeo': 'ALF',
     'Arola': 'ARO',
