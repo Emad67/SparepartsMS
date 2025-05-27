@@ -64,8 +64,8 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="location" class="form-label">Location in Warehouse</label>
-                    {{ form.location(class="form-control", id="location", placeholder="e.g. Shelf A-12") }}
+                    <label for="location" class="form-label">Location in Warehouse *</label>
+                    {{ form.location(class="form-control", id="location", placeholder="e.g. Shelf A-12", required=true, oninvalid="this.setCustomValidity('Please enter the location in the warehouse.')", oninput="this.setCustomValidity('')") }}
                 </div>
                 
                 <div class="mb-3">
