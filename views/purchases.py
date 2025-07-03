@@ -45,6 +45,7 @@ def bulk_purchase():
                 quantity = item.get('quantity')
                 unit_cost = item.get('total_unit_price')  # Use total unit price in NKF
                 total_cost = unit_cost * quantity
+                unit_aed_price = item.get('unit_aed_price')
 
                 if not all([part_id, quantity, unit_cost]):
                     raise ValueError('Missing required fields in item data')
@@ -64,7 +65,8 @@ def bulk_purchase():
                     total_cost=total_cost,
                     status='received',  # Mark as received immediately
                     invoice_number=invoice_number,
-                    user_id=current_user.id
+                    user_id=current_user.id,
+                    unit_aed_price=unit_aed_price
                 )
                 db.session.add(purchase)
 
@@ -115,6 +117,13 @@ def bulk_purchase():
                     exchange_rate=ExchangeRate.get_rate_for_date()
                 )
                 db.session.add(financial_transaction)
+                
+                # Calculate cost price in Dirham
+                new_cost_price_dirham = part.calculate_cost_price_dirham()
+                part.cost_price_dirham = new_cost_price_dirham
+                print("New cost price in Dirham:", new_cost_price_dirham)
+                db.session.add(part)
+                db.session.flush()
 
                 # Update part cost price
                 db.session.refresh(part)
@@ -122,6 +131,8 @@ def bulk_purchase():
                 part.cost_price = new_cost_price
                 db.session.add(part)
                 db.session.flush()
+
+                
 
             # Commit all changes
             db.session.commit()
@@ -269,6 +280,9 @@ def receive_purchase(id):
         db.session.flush()  # Force the update to be written to the database
         flash(f"Calculated new cost price for part in receive_purchase method {purchase.part.id}: {new_cost_price}")
         
+        # Calculate cost price in Dirham
+        purchase.part.calculate_cost_price_dirham()
+        
         # Commit all changes
         db.session.commit()
         flash('Purchase order marked as received and stock updated successfully', 'success')
@@ -313,5 +327,7 @@ def cancel_purchase(id):
 @login_required
 @role_required('admin', 'manager')
 def view_purchase(purchase_id):
+    purchase = Purchase.query.get_or_404(purchase_id)
+    return render_template('purchases/view.html', purchase=purchase)
     purchase = Purchase.query.get_or_404(purchase_id)
     return render_template('purchases/view.html', purchase=purchase)

@@ -162,7 +162,7 @@
                                    title="Average cost price calculated from purchases and credit purchases"></i>
                             </label>
                             <div class="input-group">
-                                <span class="input-group-text">$</span>
+                                <span class="input-group-text">NKF</span>
                                 <input type="number" 
                                        class="form-control bg-light" 
                                        id="cost_price" 
@@ -172,6 +172,29 @@
                                        min="0" 
                                        readonly>
                             </div>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-lock"></i> 
+                                This value is automatically calculated based on your purchase history
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="cost_price_dirham" class="form-label">Cost Price Dirham</label>
+                            <div class="input-group">
+                                <span class="input-group-text">DH</span>
+                                {{ form.cost_price_dirham(class="form-control", id="cost_price_dirham", step="0.01", min="0") }}
+                            </div>
+                            {% if form.cost_price_dirham.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.cost_price_dirham.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <small class="form-text text-muted">
                                 <i class="bi bi-lock"></i> 
                                 This value is automatically calculated based on your purchase history

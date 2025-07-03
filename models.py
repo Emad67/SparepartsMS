@@ -91,6 +91,7 @@ class Part(db.Model):
     barcode = db.Column(db.String(100), unique=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    cost_price_dirham = db.Column(db.Float, default=0.0)
 
     def __init__(self, *args, **kwargs):
         super(Part, self).__init__(*args, **kwargs)
@@ -129,6 +130,28 @@ class Part(db.Model):
         
         return new_cost_price
 
+    def calculate_cost_price_dirham(self):
+        total_cost = 0
+        total_quantity = 0
+        for purchase in self.purchases:
+            print("Purchase:", purchase.id, purchase.unit_aed_price, purchase.quantity, purchase.status)
+            if purchase.status == 'received' and purchase.unit_aed_price is not None:
+                total_cost += purchase.unit_aed_price * purchase.quantity
+                total_quantity += purchase.quantity
+        # Optionally include credit purchases with AED price
+        for credit_purchase in self.credit_purchases:
+            if credit_purchase.status == 'paid' and credit_purchase.unit_aed_price is not None:
+                total_cost += credit_purchase.unit_aed_price * credit_purchase.quantity
+                total_quantity += credit_purchase.quantity
+        if total_quantity > 0:
+            new_cost_price_dirham = total_cost / total_quantity
+            self.cost_price_dirham = new_cost_price_dirham
+            db.session.add(self)
+            db.session.flush()
+        else:
+            new_cost_price_dirham = self.cost_price_dirham
+        return new_cost_price_dirham
+
 class Supplier(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
@@ -153,6 +176,7 @@ class Loan(db.Model):
     part_id = db.Column(db.Integer, db.ForeignKey('parts.id'))  # Changed from 'part.id' to 'parts.id'
     quantity = db.Column(db.Integer)
     price = db.Column(db.Float)
+    selling_price = db.Column(db.Float)
     loan_date = db.Column(db.DateTime, default=datetime.utcnow)
     due_date = db.Column(db.DateTime)
     returned_date = db.Column(db.DateTime)
@@ -180,6 +204,7 @@ class CreditPurchase(db.Model):
     due_date = db.Column(db.DateTime)
     status = db.Column(db.String(20))  # pending, paid, overdue
     voided = db.Column(db.Boolean, default=False)
+    unit_aed_price = db.Column(db.Float)  # Add this field if needed
     
     # Add relationships with explicit foreign keys and primaryjoin
     supplier = db.relationship('Supplier', 
@@ -307,6 +332,7 @@ class Purchase(db.Model):
     invoice_number = db.Column(db.String(50))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     voided = db.Column(db.Boolean, default=False)  # Added voided field
+    unit_aed_price = db.Column(db.Float)  # Add this field
     
     # Add relationships with explicit foreign keys and primaryjoin
     part = db.relationship('Part', 
@@ -473,6 +499,32 @@ class PartName(db.Model):
 # def purchase_cost_price_update(mapper, connection, target):
 #     """Update part cost price when purchase is created or updated"""
 #     if target.part:
+#         current_app.logger.info(f"Event triggered for Purchase ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
+
+# @event.listens_for(CreditPurchase, 'after_insert')
+# @event.listens_for(CreditPurchase, 'after_update')
+# def credit_purchase_cost_price_update(mapper, connection, target):
+#     """Update part cost price when credit purchase is created or updated"""
+#     if target.part:
+#         current_app.logger.info(f"Event triggered for Credit Purchase ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
+
+# @event.listens_for(Transaction, 'after_insert')
+# @event.listens_for(Transaction, 'after_update')
+# def transaction_cost_price_update(mapper, connection, target):
+#     """Update part cost price when transaction is created or updated"""
+#     if target.part and target.type == 'sale':
+#         current_app.logger.info(f"Event triggered for Transaction ID: {target.id}")
+#         target.part.calculate_cost_price()
+#         db.session.add(target.part)
+#         db.session.flush()
+#         db.session.add(target.part)
+#         db.session.flush()
 #         current_app.logger.info(f"Event triggered for Purchase ID: {target.id}")
 #         target.part.calculate_cost_price()
 #         db.session.add(target.part)

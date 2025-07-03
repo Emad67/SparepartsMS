@@ -4,15 +4,16 @@
 <div class="container-fluid">
     <h2 class="mb-4">Parts Management</h2>
     <div class="d-flex justify-content-between mb-3">
-        <div class="d-flex gap-2">
-            <input type="text" class="form-control" id="searchInput" placeholder="Search parts...">
-            <select class="form-select" id="categoryFilter">
+        <form method="GET" action="{{ url_for('parts.list_parts') }}" class="d-flex gap-2">
+            <input type="text" class="form-control" name="q" placeholder="Search parts..." value="{{ request.args.get('q', '') }}">
+            <select class="form-select" name="category_id">
                 <option value="">All Categories</option>
                 {% for category in categories %}
-                <option value="{{ category.name }}">{{ category.name }}</option>
+                <option value="{{ category.id }}" {% if request.args.get('category_id') and request.args.get('category_id')|int == category.id %}selected{% endif %}>{{ category.name }}</option>
                 {% endfor %}
             </select>
-        </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
         <div class="mb-3">
             <a href="{{ url_for('parts.add_part') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add New Part
@@ -40,6 +41,7 @@
                     <th>Price (Min-Max)</th>
                     <th>Selling Price</th>
                     <th>Cost Price</th>
+                    <th>Cost Price Dirham</th>
                     <th>Image</th>
                     <th>Description</th>
                     <th>Weight</th>
@@ -104,6 +106,15 @@
                             <span class="text-muted">-</span>
                         {% endif %}
                     </td>
+                    <td class="text-end">
+                        {% if part.cost_price_dirham %}
+                            <span class="badge bg-dark">
+                                {{ "{:,.2f}".format(part.cost_price_dirham) }} DH
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                     
                     <td>
                         {% if part.image_url %}
@@ -148,6 +159,51 @@
             </tbody>
         </table>
     </div>
+
+    {% if pagination %}
+    <nav>
+        <ul class="pagination justify-content-center">
+            {# Previous Page Link #}
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('parts.list_parts', page=pagination.prev_num, q=request.args.get('q', ''), category_id=request.args.get('category_id', '')) }}">Previous</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                </li>
+            {% endif %}
+
+            {# Page Numbers #}
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_num %}
+                    {% if pagination.page == page_num %}
+                        <li class="page-item active" aria-current="page">
+                            <a class="page-link" href="#">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('parts.list_parts', page=page_num, q=request.args.get('q', ''), category_id=request.args.get('category_id', '')) }}">{{ page_num }}</a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            {# Next Page Link #}
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('parts.list_parts', page=pagination.next_num, q=request.args.get('q', ''), category_id=request.args.get('category_id', '')) }}">Next</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
 
 <!-- Delete Confirmation Modal -->
@@ -181,34 +237,14 @@ function confirmDelete(partId, partName) {
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
 
-$(document).ready(function() {
-    $('#searchInput').on('keyup', function() {
-        var value = $(this).val().toLowerCase();
-        filterTable(value, $('#categoryFilter').val());
-    });
-    
-    $('#categoryFilter').on('change', function() {
-        var value = $('#searchInput').val().toLowerCase();
-        filterTable(value, $(this).val());
-    });
-    
-    function filterTable(searchText, category) {
-        $("table tbody tr").filter(function() {
-            var matchesSearch = $(this).text().toLowerCase().indexOf(searchText) > -1;
-            var matchesCategory = !category || $(this).find("td:eq(2)").text() === category;
-            $(this).toggle(matchesSearch && matchesCategory);
-        });
-    }
-});
-
 function showFullImage(imageUrl, partName) {
     const modal = `
-        <div class="modal fade" id="imageModal" tabindex="-1">
+        <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">${partName}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <h5 class="modal-title" id="imageModalLabel">${partName}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
                         <img src="${imageUrl}" class="img-fluid" alt="${partName}">
@@ -217,16 +253,10 @@ function showFullImage(imageUrl, partName) {
             </div>
         </div>
     `;
-    
-    // Remove existing modal if any
-    const existingModal = document.getElementById('imageModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
+    // Remove any existing modal
+    $('#imageModal').remove();
     // Add new modal to body
-    document.body.insertAdjacentHTML('beforeend', modal);
-    
+    $('body').append(modal);
     // Show the modal
     new bootstrap.Modal(document.getElementById('imageModal')).show();
 }

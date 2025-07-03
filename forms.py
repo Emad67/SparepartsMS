@@ -15,6 +15,7 @@ class PartForm(FlaskForm):
     part_number = StringField('Part Number', validators=[DataRequired()])
     name = StringField('Name', validators=[DataRequired()])
     description = TextAreaField('Description')
+    cost_price_dirham = FloatField('Cost Price Dirham', validators=[Optional()])
     cost_price = FloatField('Cost Price', validators=[Optional()])
     selling_price = FloatField('Selling Price', validators=[Optional()])
     location = StringField('Location')

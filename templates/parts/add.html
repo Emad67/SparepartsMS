@@ -195,6 +195,23 @@
                     </div>
                 </div>
                 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="cost_price_dirham" class="form-label">Cost Price Dirham</label>
+                            {{ form.cost_price_dirham(class="form-control", id="cost_price_dirham", step="0.01", min="0") }}
+                            {% if form.cost_price_dirham.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.cost_price_dirham.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Dirham cost price will be automatically calculated based on purchases</small>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="mb-3">
                     <label for="image" class="form-label">Image</label>
                     <input type="file" class="form-control" id="image" name="image" accept="image/*">
@@ -393,7 +410,7 @@ Object.keys(qualityCodes).forEach(name => {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Ensure price fields stay disabled for staff
-    const priceFields = ['min_price', 'max_price', 'cost_price', 'selling_price'];
+    const priceFields = ['min_price', 'max_price', 'cost_price', 'cost_price_dirham', 'selling_price'];
     priceFields.forEach(field => {
         const element = document.getElementById(field);
         if (element) {

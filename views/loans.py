@@ -52,12 +52,17 @@ def list_loans():
 @loans.route('/loans/add', methods=['GET', 'POST'])
 @login_required
 def add_loan():
+    
     if request.method == 'POST':
         customer_id = request.form.get('customer_id')
         part_id = request.form.get('part_id')
         quantity = int(request.form.get('quantity'))
         days = int(request.form.get('days', 30))
         price = request.form.get('price', type=float)
+        selling_price = request.form.get('selling_price', type=float)
+        warehouse_id = request.form.get('warehouse_id', type=int)
+        warehouse = Warehouse.query.get_or_404(warehouse_id)
+        
         
         # Check if enough total stock is available
         part = Part.query.get_or_404(part_id)
@@ -72,7 +77,8 @@ def add_loan():
             loan_date=datetime.utcnow(),
             due_date=datetime.utcnow() + timedelta(days=days),
             status='active',
-            price=price
+            price=price,
+            selling_price=selling_price
         )
         
         # Add loan to get its ID
@@ -81,6 +87,24 @@ def add_loan():
         
         # Update part's total stock level
         part.stock_level -= quantity
+        # Get the warehouse
+        warehouse = Warehouse.query.get_or_404(warehouse_id)
+
+        # Update the stock level in the warehouse
+        warehouse_stock = WarehouseStock.query.filter_by(
+            warehouse_id=warehouse_id,
+            part_id=part_id
+        ).first()
+
+        if not warehouse_stock:
+            flash('No stock record for this part in the selected warehouse. Please check your selection or add stock to this warehouse.', 'error')
+            return redirect(url_for('loans.add_loan'))
+        if warehouse_stock.quantity < quantity:
+            flash('Insufficient stock in the selected warehouse. Please adjust the quantity or choose another warehouse.', 'error')
+            return redirect(url_for('loans.add_loan'))
+    
+    
+        warehouse_stock.quantity -= quantity
         
         # Create bincard entry for the loan
         bincard = BinCard(
@@ -91,7 +115,7 @@ def add_loan():
             reference_id=loan.id,
             balance=part.stock_level,
             user_id=current_user.id,
-            notes=f'Loan to {loan.customer.name} for {days} days'
+            notes=f'Loan to {loan.customer.name} for {days} days from {warehouse.name}'
         )
         
         db.session.add(bincard)
@@ -101,9 +125,11 @@ def add_loan():
         
     customers = Customer.query.all()
     parts = Part.query.filter(Part.stock_level > 0).all()
-    return render_template('loans/add.html', 
-                         customers=customers, 
-                         parts=parts)
+    warehouses = Warehouse.query.order_by(Warehouse.name).all()
+    default_warehouse_id = None
+    if warehouses:
+        default_warehouse_id = min(warehouses, key=lambda w: w.id).id
+    return render_template('loans/add.html', customers=customers, parts=parts, warehouses=warehouses, default_warehouse_id=default_warehouse_id)
 
 @loans.route('/loans/<int:id>/return', methods=['POST'])
 @login_required
@@ -194,19 +220,19 @@ def convert_to_sale(id):
         loan.status = 'sold'
         loan.returned_date = datetime.utcnow()
         
-        # Get the warehouse
-        warehouse = Warehouse.query.get_or_404(warehouse_id)
+        # # Get the warehouse
+        # warehouse = Warehouse.query.get_or_404(warehouse_id)
         
-        # Update the stock level in the warehouse
-        warehouse_stock = WarehouseStock.query.filter_by(
-            warehouse_id=warehouse_id,
-            part_id=loan.part_id
-        ).first()
+        # # Update the stock level in the warehouse
+        # warehouse_stock = WarehouseStock.query.filter_by(
+        #     warehouse_id=warehouse_id,
+        #     part_id=loan.part_id
+        # ).first()
 
-        if not warehouse_stock or warehouse_stock.quantity < loan.quantity:
-            return jsonify({'error': 'Insufficient stock in the warehouse'}), 400
+        # if not warehouse_stock or warehouse_stock.quantity < loan.quantity:
+        #     return jsonify({'error': 'Insufficient stock in the warehouse'}), 400
 
-        warehouse_stock.quantity -= loan.quantity
+        # warehouse_stock.quantity -= loan.quantity
 
 
         # Create bincard entry for the sale

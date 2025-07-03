@@ -43,8 +43,10 @@ def is_user_staff():
 @parts.route('/parts/staff')
 @login_required
 def staff_list_parts():
+    page = request.args.get('page', 1, type=int)
     # Get all parts ordered by creation date (newest first)
-    parts = Part.query.order_by(desc(Part.created_at)).all()
+    pagination = Part.query.order_by(desc(Part.created_at)).paginate(page=page, per_page=10, error_out=False)
+    parts = pagination.items
     
     # Update stock levels from all warehouses
     for part in parts:
@@ -55,13 +57,46 @@ def staff_list_parts():
     # Get categories for filtering
     categories = Category.query.all()
     
-    return render_template('parts/staff_list.html', parts=parts, categories=categories)
+    return render_template('parts/staff_list.html', parts=parts, categories=categories, pagination=pagination)
 
 @parts.route('/parts')
 @login_required
 def list_parts():
+    page = request.args.get('page', 1, type=int)
     # Get all parts with their warehouse stocks
-    parts = Part.query.all()
+    q = request.args.get('q', '').strip()
+    category_id = request.args.get('category_id')
+    query = Part.query
+    if q:
+        # Join with related tables for searching
+        # Using outerjoin to include parts that might not have these relationships
+        query = query.outerjoin(Category, Part.category_id == Category.id)\
+                     .outerjoin(Supplier, Part.supplier_id == Supplier.id)\
+                     .outerjoin(WarehouseStock, Part.id == WarehouseStock.part_id)\
+                     .outerjoin(Warehouse, WarehouseStock.warehouse_id == Warehouse.id)
+
+        query = query.filter(
+            (Part.part_number.ilike(f'%{q}%')) |
+            (Part.name.ilike(f'%{q}%')) |
+            (Part.location.ilike(f'%{q}%')) |
+            (Part.code.ilike(f'%{q}%')) |
+            (Part.substitute_part_number.ilike(f'%{q}%')) |
+            (Part.description.ilike(f'%{q}%')) |
+            (Part.weight.cast(db.String).ilike(f'%{q}%')) |
+            (Part.unit.ilike(f'%{q}%')) |
+            (Part.barcode.ilike(f'%{q}%')) |
+            (Part.created_at.cast(db.String).ilike(f'%{q}%')) |
+            (Part.updated_at.cast(db.String).ilike(f'%{q}%')) |
+            (Category.name.ilike(f'%{q}%')) |
+            (Supplier.name.ilike(f'%{q}%')) |
+            (Warehouse.name.ilike(f'%{q}%'))
+        )
+    if category_id:
+        query = query.filter(Part.category_id == category_id)
+
+    # Use distinct to avoid duplicate results from joins
+    pagination = query.distinct().order_by(Part.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    parts = pagination.items
     
     # Update stock levels from all warehouses
     for part in parts:
@@ -95,7 +130,7 @@ def list_parts():
     db.session.commit()
     
     categories = Category.query.all()
-    return render_template('parts/list.html', parts=parts, categories=categories)
+    return render_template('parts/list.html', parts=parts, categories=categories, pagination=pagination)
 
 def generate_sequential_barcode():
     # Get the highest existing barcode from the database
@@ -169,6 +204,7 @@ def add_part():
                     supplier_id=request.form.get('supplier_id') or None,
                     barcode=barcode,
                     cost_price=form.cost_price.data,
+                    cost_price_dirham=form.cost_price_dirham.data,  
                     selling_price=form.selling_price.data
                 )
                 print(f"Created part object: {part}")  # Debug line
@@ -321,6 +357,10 @@ def edit_part(part_id):
                     part.max_price = float(request.form.get('max_price'))
                 if request.form.get('cost_price'):
                     part.cost_price = float(request.form.get('cost_price'))
+                if request.form.get('cost_price_dirham'):
+                    part.cost_price_dirham = float(request.form.get('cost_price_dirham'))
+                if request.form.get('selling_price'):
+                    part.selling_price = float(request.form.get('selling_price'))
             
              # Update warehouse stock quantities
             for stock in part.warehouse_stocks:
@@ -496,6 +536,7 @@ def export_parts():
                 part.min_price,
                 part.max_price,
                 part.cost_price,
+                part.cost_price_dirham,
                 part.description,
                 part.unit,
                 part.category.name if part.category else '',
@@ -551,3 +592,26 @@ def part_names():
     q = request.args.get('q', '')
     results = PartName.query.filter(PartName.name.ilike(f'%{q}%')).limit(10).all()
     return jsonify([p.name for p in results])
+
+
+@parts.route('/api/parts/search')
+def search_parts():
+    q = request.args.get('q', '')
+    results = []
+    if q:
+        # Query your DB for matching parts (by part_number, name, etc)
+        parts = Part.query.filter(
+            (Part.part_number.ilike(f'%{q}%')) |
+            (Part.name.ilike(f'%{q}%')) |
+            (Part.code.ilike(f'%{q}%')) |
+            (Part.substitute_part_number.ilike(f'%{q}%'))
+        ).limit(30).all()
+        for part in parts:
+            results.append({
+                'id': part.id,
+                'part_number': part.part_number,
+                'name': part.name,
+                'code': part.code,
+                'substitute_part_number': part.substitute_part_number
+            })
+    return jsonify({'results': results})

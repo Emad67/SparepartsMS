@@ -10,22 +10,28 @@ pos = Blueprint('pos', __name__, url_prefix='/pos')
 @pos.route('/')
 @login_required
 def index():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    
     search_query = request.args.get('search', '')
     
     # Get all warehouses for the dropdown
     warehouses = Warehouse.query.all()
     
     if search_query:
-        parts = Part.query.filter(
+        query = Part.query.filter(
             db.or_(
                 Part.part_number.ilike(f'%{search_query}%'),
                 Part.name.ilike(f'%{search_query}%'),
                 Part.code.ilike(f'%{search_query}%'),
                 Part.substitute_part_number.ilike(f'%{search_query}%')
             )
-        ).all()
+        )
     else:
-        parts = Part.query.all()
+        query = Part.query
+    
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    parts = pagination.items
     
     # Convert Part objects to dictionaries with all necessary data
     parts_data = [{
@@ -50,7 +56,8 @@ def index():
                          parts=parts_data, 
                          search_query=search_query,
                          warehouses=warehouses,
-                         csrf_token=generate_csrf())
+                         csrf_token=generate_csrf(),
+                         pagination=pagination)
 
 @pos.route('/api/search-parts')
 @login_required
