@@ -77,3 +77,4 @@ coverage.xml
 # Migrations (keep the migrations directory but ignore compiled files)
 migrations/__pycache__/
 migrations/versions/__pycache__/ 
+docs/Screenshot 2025-07-02 211509.png
