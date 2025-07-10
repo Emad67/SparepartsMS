@@ -34,6 +34,64 @@
             </div>
         </div>
         
+        <!-- Cheque Payment Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Cheque Payment Report</h5>
+                    <form action="{{ url_for('reports.sales_cheque') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='sales', format='csv', payment_method='cheque') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='sales', format='pdf', payment_method='cheque') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Transfer Payment Report -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Transfer Payment Report</h5>
+                    <form action="{{ url_for('reports.sales_transfer') }}" method="GET" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control" name="end_date" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">View</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="btn-group">
+                        <a href="{{ url_for('reports.export', report_type='sales', format='csv', payment_method='transfer') }}" class="btn btn-success">Export CSV</a>
+                        <a href="{{ url_for('reports.export', report_type='sales', format='pdf', payment_method='transfer') }}" class="btn btn-danger">Export PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Purchases Report -->
         <div class="col-md-6 mb-4">
             <div class="card">

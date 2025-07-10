@@ -240,6 +240,19 @@
                         <input type="number" class="form-control" id="price" required min="0" step="0.01">
                         <div class="form-text">Suggested range: <span id="priceRange"></span></div>
                     </div>
+                    <div class="mb-3">
+                        <label for="paymentMethod" class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod" required>
+                            <option value="">Select Payment Method</option>
+                            <option value="cash">Cash</option>
+                            <option value="cheque">Cheque</option>
+                            <option value="transfer">Transfer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="paymentInfo" class="form-label">Payment Info</label>
+                        <input type="text" class="form-control" id="paymentInfo" placeholder="Enter extra info (e.g., cheque number, bank, etc.)">
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -475,6 +488,8 @@ document.getElementById('confirmAddToCart').addEventListener('click', function()
     const price = parseFloat(document.getElementById('price').value);
     const warehouseId = document.getElementById('warehouse').value;
     const warehouseName = document.getElementById('warehouse').selectedOptions[0].text.split(' (')[0];
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const paymentInfo = document.getElementById('paymentInfo').value;
     
     // Add to cart
     cart.push({
@@ -484,7 +499,9 @@ document.getElementById('confirmAddToCart').addEventListener('click', function()
         quantity: quantity,
         price: price,
         warehouseId: warehouseId,
-        warehouseName: warehouseName
+        warehouseName: warehouseName,
+        paymentMethod: paymentMethod,
+        paymentInfo: paymentInfo
     });
     
     updateCartDisplay();

@@ -4,6 +4,7 @@ from models import db, Part, Warehouse, WarehouseStock, Disposal, BinCard, Finan
 from datetime import datetime
 from views.utils import role_required
 from utils.currency import format_nkf  # Import the utility function
+import pytz
 
 
 disposals = Blueprint('disposals', __name__)
@@ -86,7 +87,7 @@ def add_disposal():
                 description=f'Disposal of {quantity} units of {part.name} (#{part.part_number}) at {(unit_cost)} per unit',
                 reference_id=str(disposal.id),
                 user_id=current_user.id,
-                date=datetime.utcnow(),
+                date=datetime.now(pytz.timezone('Africa/Nairobi')),
                 exchange_rate=ExchangeRate.get_rate_for_date()
             )
             db.session.add(financial_transaction)

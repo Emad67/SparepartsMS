@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from models import db, Part, Transaction
 from datetime import datetime
 from utils.date_utils import parse_date_range, format_date
+import pytz
 
 returns = Blueprint('returns', __name__)
 
@@ -45,7 +46,7 @@ def add_return():
             type='return',
             quantity=quantity,
             price=0,  # or calculate refund amount
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             user_id=current_user.id
         )
         

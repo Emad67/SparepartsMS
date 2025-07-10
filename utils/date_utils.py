@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import pytz
 
 # Standard date format for string representation
 DATE_FORMAT = '%Y-%m-%d'
@@ -113,4 +114,11 @@ def parse_date_range(start_date_str: str | None, end_date_str: str | None, defau
         # If date parsing fails, return default range
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=default_days)
-        return start_date, end_date 
+        return start_date, end_date
+
+def utc_to_asmara(dt: datetime) -> datetime:
+    """Convert a UTC datetime to Africa/Nairobi (Asmara) timezone-aware datetime."""
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    nairobi_tz = pytz.timezone('Africa/Nairobi')
+    return dt.astimezone(nairobi_tz) 

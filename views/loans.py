@@ -1,11 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from models import db, Loan, Customer, Part, BinCard, WarehouseStock, Warehouse, Transaction, FinancialTransaction, ExchangeRate
+from models import db, Loan, Customer, Part, BinCard, WarehouseStock, Warehouse, Transaction, FinancialTransaction, ExchangeRate, LoanPayment
 from datetime import datetime, timedelta
 from sqlalchemy import and_
 from utils.date_utils import parse_date_range, format_date
 from utils.template_filters import format_price_nkf
 from utils.currency import get_usd_amount
+import pytz
+
+nairobi_tz = pytz.timezone('Africa/Nairobi')
+now_asmara = datetime.now(nairobi_tz)
 
 loans = Blueprint('loans', __name__)
 
@@ -74,8 +78,8 @@ def add_loan():
             customer_id=customer_id,
             part_id=part_id,
             quantity=quantity,
-            loan_date=datetime.utcnow(),
-            due_date=datetime.utcnow() + timedelta(days=days),
+            loan_date=datetime.now(pytz.timezone('Africa/Nairobi')),
+            due_date=datetime.now(pytz.timezone('Africa/Nairobi')) + timedelta(days=days),
             status='active',
             price=price,
             selling_price=selling_price
@@ -140,7 +144,7 @@ def return_loan(id):
         return redirect(url_for('loans.list_loans'))
         
     loan.status = 'returned'
-    loan.returned_date = datetime.utcnow()
+    loan.returned_date = datetime.now(pytz.timezone('Africa/Nairobi'))
     
     # Return stock to the warehouse it was taken from
     # Find the most recent bincard entry for this loan to get the warehouse info
@@ -208,7 +212,7 @@ def convert_to_sale(id):
             type='sale',
             quantity=loan.quantity,
             price=price_nkf,  # Store price in NKF
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             user_id=current_user.id
         )
 
@@ -218,23 +222,26 @@ def convert_to_sale(id):
         
         # Update loan status
         loan.status = 'sold'
-        loan.returned_date = datetime.utcnow()
+        loan.returned_date = datetime.now(pytz.timezone('Africa/Nairobi'))
         
         # # Get the warehouse
-        # warehouse = Warehouse.query.get_or_404(warehouse_id)
+        warehouse = Warehouse.query.get_or_404(warehouse_id)
         
         # # Update the stock level in the warehouse
-        # warehouse_stock = WarehouseStock.query.filter_by(
-        #     warehouse_id=warehouse_id,
-        #     part_id=loan.part_id
-        # ).first()
+        warehouse_stock = WarehouseStock.query.filter_by(
+           warehouse_id=warehouse_id,
+           part_id=loan.part_id
+         ).first()
 
         # if not warehouse_stock or warehouse_stock.quantity < loan.quantity:
-        #     return jsonify({'error': 'Insufficient stock in the warehouse'}), 400
+        #return jsonify({'error': 'Insufficient stock in the warehouse'}), 400
 
-        # warehouse_stock.quantity -= loan.quantity
+        #warehouse_stock.quantity -= loan.quantity
 
-
+        # Fetch the current stock balance for the part
+        part = Part.query.get(loan.part_id)
+        current_balance = part.stock_level if part else 0
+        
         # Create bincard entry for the sale
         bincard = BinCard(
             part_id=loan.part_id,
@@ -242,9 +249,9 @@ def convert_to_sale(id):
             quantity=loan.quantity,  # Reflect the quantity sold
             reference_type='sale',
             reference_id=sale.id,
-            balance=warehouse_stock.quantity,  # Updated stock level after the sale
+            balance=current_balance,  # Use the current part stock level
             user_id=current_user.id,
-            notes=f'Converted loan #{loan.id} to sale at NKF {price_nkf:,.2f} per unit in {warehouse.name}'
+            notes=f'Converted loan #{loan.id} to sale at NKF {price_nkf:,.2f} per unit'
         )
         
         
@@ -260,7 +267,7 @@ def convert_to_sale(id):
             description=f'Loan #{loan.id} converted to sale: {loan.quantity} units at NKF {price_nkf} per unit in {warehouse.name}',
             reference_id=str(sale.id),
             user_id=current_user.id,
-            date=datetime.utcnow()
+            date=datetime.now(pytz.timezone('Africa/Nairobi'))
         )
         
         db.session.add(bincard)
@@ -316,3 +323,65 @@ def create_loan():
         flash('Error creating loan: ' + str(e), 'error')
         
     return redirect(url_for('loans.list_loans'))
+
+@loans.route('/loans/<int:loan_id>/add-payment', methods=['POST'])
+@login_required
+def add_loan_payment(loan_id):
+    amount = float(request.form['amount'])
+    method = request.form['method']
+    notes = request.form.get('notes', '')
+    payment = LoanPayment(loan_id=loan_id, amount=amount, method=method, notes=notes)
+    db.session.add(payment)
+    db.session.flush()  # So payment.id is available if needed
+
+    loan = Loan.query.get_or_404(loan_id)
+
+    # Calculate quantity paid for this payment
+    quantity_paid = 0
+    if loan.selling_price:
+        quantity_paid = round(amount / loan.selling_price, 2)
+
+    # Create a Transaction for this payment
+    sale = Transaction(
+        part_id=loan.part_id,
+        type='sale',
+        quantity=1,  # Track how much of the loan is paid off in units
+        price=amount,
+        date=datetime.now(pytz.timezone('Africa/Nairobi')),
+        user_id=current_user.id,
+        payment_method=method,
+        notes=notes
+    )
+    db.session.add(sale)
+    db.session.flush()
+
+    # Create a FinancialTransaction for this payment
+    financial_transaction = FinancialTransaction(
+        type='revenue',
+        category='Loan Payment',
+        amount=amount,
+        exchange_rate=ExchangeRate.get_rate_for_date(),
+        description=f'Partial payment for Loan #{loan.id}: {amount} NKF, method: {method}',
+        reference_id=str(sale.id),
+        user_id=current_user.id,
+        date=datetime.now(pytz.timezone('Africa/Nairobi'))
+    )
+    db.session.add(financial_transaction)
+
+    db.session.commit()
+    flash('Payment recorded successfully!', 'success')
+    return redirect(url_for('loans.loan_status', loan_id=loan_id))
+
+@loans.route('/loans/<int:loan_id>/status')
+@login_required
+def loan_status(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    total_amount = loan.quantity * (loan.selling_price or 0)
+    print(total_amount)
+    total_paid = sum(payment.amount for payment in loan.payments)
+    outstanding_amount = total_amount - total_paid
+    return render_template('loans/status.html', 
+                         loan=loan, 
+                         total_paid=total_paid,
+                         total_amount=total_amount,
+                         outstanding_amount=outstanding_amount)

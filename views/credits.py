@@ -7,6 +7,7 @@ from views.utils import role_required
 from utils.date_utils import parse_date_range, format_date
 from sqlalchemy.orm import joinedload
 from sqlalchemy import inspect
+import pytz
 
 
 credits = Blueprint('credits', __name__)
@@ -76,8 +77,8 @@ def add_credit():
             warehouse_id=warehouse_id,
             quantity=quantity,
             price=price,
-            purchase_date=datetime.utcnow(),
-            due_date=datetime.utcnow() + timedelta(days=days),
+            purchase_date=datetime.now(pytz.timezone('Africa/Nairobi')),
+            due_date=datetime.now(pytz.timezone('Africa/Nairobi')) + timedelta(days=days),
             status='pending'
         )
         
@@ -159,7 +160,7 @@ def mark_paid(id):
             description=f'Payment for credit purchase #{credit.id}: {credit.quantity} units at ${credit.price} per unit',
             reference_id=str(credit.id),
             user_id=current_user.id,
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             exchange_rate=ExchangeRate.get_rate_for_date()
         )
         db.session.add(financial_transaction)

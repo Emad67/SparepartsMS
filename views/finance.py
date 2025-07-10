@@ -9,6 +9,7 @@ from utils.date_utils import (
     parse_date_range, format_date, format_datetime,
     get_start_of_day, get_end_of_day, get_date_range
 )
+import pytz
 
 finance = Blueprint('finance', __name__)
 
@@ -121,7 +122,7 @@ def add_transaction():
             amount=float(request.form.get('amount')),
             description=request.form.get('description'),
             reference_id=request.form.get('reference_id'),
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             user_id=current_user.id,
             exchange_rate=current_rate  # Add exchange rate
         )
@@ -450,7 +451,7 @@ def export_csv(report_type):
     buffer.write(b'\xef\xbb\xbf')
     
     # Write report header
-    current_date = datetime.now().strftime('%Y-%m-%d %H:%M')
+    current_date = datetime.now(pytz.timezone('Africa/Nairobi')).strftime('%Y-%m-%d %H:%M')
     buffer.write(f'Report Type: {report_type.title()} Report\n'.encode('utf-8'))
     buffer.write(f'Generated on: {current_date}\n'.encode('utf-8'))
     buffer.write('\n'.encode('utf-8'))
@@ -523,7 +524,7 @@ def export_csv(report_type):
         buffer,
         mimetype='text/csv',
         as_attachment=True,
-        download_name=f'{report_type}_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        download_name=f'{report_type}_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.csv'
     )
 
 def export_pdf(report_type):
@@ -613,7 +614,7 @@ def export_pdf(report_type):
         buffer,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'{report_type}_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        download_name=f'{report_type}_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
     )
 
 def generate_pdf(data, title, headers):
@@ -658,7 +659,7 @@ def generate_pdf(data, title, headers):
         spaceAfter=20,
         alignment=1  # Center alignment
     )
-    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", date_style))
+    elements.append(Paragraph(f"Generated on: {datetime.now(pytz.timezone('Africa/Nairobi')).strftime('%Y-%m-%d %H:%M')}", date_style))
     
     # Add some space
     elements.append(Spacer(1, 20))
@@ -805,7 +806,7 @@ def void_transaction(transaction_id):
             description=f'Voiding Transaction ID: {transaction.id} - {transaction.description} - Reason: {data["reason"]}',
             reference_id=str(transaction.id),
             user_id=current_user.id,
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             exchange_rate=transaction.exchange_rate
         )
         db.session.add(void_transaction)
@@ -814,7 +815,7 @@ def void_transaction(transaction_id):
         transaction.voided = True
         transaction.void_reason = data['reason']
         transaction.voided_by_id = current_user.id
-        transaction.voided_at = datetime.utcnow()
+        transaction.voided_at = datetime.now(pytz.timezone('Africa/Nairobi'))
         transaction.void_reference_id = void_transaction.id
         
         # Update related records based on transaction type and reference
@@ -1060,7 +1061,7 @@ def recalculate_prices():
         
         # Get the previous exchange rate (the one before current)
         previous_rate = ExchangeRate.query.filter(
-            ExchangeRate.effective_from < datetime.utcnow()
+            ExchangeRate.effective_from < datetime.now(pytz.timezone('Africa/Nairobi'))
         ).order_by(ExchangeRate.effective_from.desc()).offset(1).first()
         
         if not previous_rate:

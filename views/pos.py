@@ -4,6 +4,7 @@ from flask_wtf.csrf import generate_csrf
 from models import db, Part, Warehouse, WarehouseStock, Transaction, BinCard, FinancialTransaction, ExchangeRate
 from decimal import Decimal
 from datetime import datetime
+import pytz
 
 pos = Blueprint('pos', __name__, url_prefix='/pos')
 
@@ -138,6 +139,8 @@ def complete_sale():
             warehouse_id = item['warehouseId']
             quantity = item['quantity']
             price = item['price']
+            payment_method = item.get('paymentMethod')
+            payment_note = item.get('paymentInfo')
             total_item_amount = price * quantity
             total_amount += total_item_amount
             
@@ -158,8 +161,10 @@ def complete_sale():
                 type='sale',
                 quantity=quantity,
                 price=price,
-                date=datetime.utcnow(),
-                user_id=current_user.id
+                date=datetime.now(pytz.timezone('Africa/Nairobi')),
+                user_id=current_user.id,
+                payment_method=payment_method,
+                notes=payment_note
             )
             
             # Update warehouse stock
@@ -192,7 +197,7 @@ def complete_sale():
             description=f'POS Sale of {len(cart_items)} items',
             reference_id=','.join(str(sale.id) for sale in sales),
             user_id=current_user.id,
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             exchange_rate=ExchangeRate.get_rate_for_date()
         )
         db.session.add(financial_transaction)

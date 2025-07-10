@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, send_file, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, send_file, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from models import db, Part, Transaction, Loan, CreditPurchase, Purchase, FinancialTransaction, BinCard, Transfer, Location, User, Warehouse, Disposal
 from datetime import datetime, timedelta
@@ -19,6 +19,7 @@ from utils.date_utils import (
     parse_date_range, format_date, format_datetime,
     get_start_of_day, get_end_of_day, get_date_range
 )
+import pytz
 
 reports = Blueprint('reports', __name__)
 
@@ -83,7 +84,7 @@ def export_low_stock_pdf(parts):
         buffer,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'low_stock_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        download_name=f'low_stock_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
     )
     
 def export_low_stock_csv(parts):
@@ -92,7 +93,7 @@ def export_low_stock_csv(parts):
     buffer.write(b'\xef\xbb\xbf')  # UTF-8 BOM for Excel compatibility
     
     # Write report header
-    current_date = datetime.now().strftime('%Y-%m-%d %H:%M')
+    current_date = datetime.now(pytz.timezone("Africa/Nairobi")).strftime('%Y-%m-%d %H:%M')
     buffer.write(f'Report Type: Low Stock Report\n'.encode('utf-8'))
     buffer.write(f'Generated on: {current_date}\n'.encode('utf-8'))
     buffer.write('\n'.encode('utf-8'))
@@ -117,7 +118,7 @@ def export_low_stock_csv(parts):
         buffer,
         mimetype='text/csv',
         as_attachment=True,
-        download_name=f'low_stock_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        download_name=f'low_stock_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.csv'
     )
 
 @reports.route('/reports/sales')
@@ -127,6 +128,15 @@ def sales():
     end_date_str = request.args.get('end_date')
     user_id = request.args.get('user_id')
     part_search = request.args.get('part_search', '')
+    payment_method = request.args.get('payment_method', '')
+    
+    # Determine report title
+    if payment_method == 'cheque':
+        report_title = 'Cheque Payment Report'
+    elif payment_method == 'transfer':
+        report_title = 'Transfer Payment Report'
+    else:
+        report_title = 'Sales Report'
     
     # Get date range with fallback to last 30 days
     start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
@@ -154,6 +164,10 @@ def sales():
             )
         )
     
+    # Apply payment method filter if provided
+    if payment_method:
+        query = query.filter(Transaction.payment_method == payment_method)
+    
     # Order by date descending (newest first)
     query = query.order_by(Transaction.date.desc())
     
@@ -176,7 +190,29 @@ def sales():
                          total_items=total_items,
                          average_sale=average_sale,
                          user_id=user_id,
-                         part_search=part_search)
+                         part_search=part_search,
+                         payment_method=payment_method,
+                         report_title=report_title)
+
+@reports.route('/reports/sales/cheque')
+@login_required
+def sales_cheque():
+    # Reuse the sales logic, but filter by payment_method='cheque'
+    request_args = request.args.copy()
+    request_args = request_args.to_dict() if hasattr(request_args, 'to_dict') else dict(request_args)
+    request_args['payment_method'] = 'cheque'
+    with current_app.test_request_context(query_string=request_args):
+        return sales()
+
+@reports.route('/reports/sales/transfer')
+@login_required
+def sales_transfer():
+    # Reuse the sales logic, but filter by payment_method='transfer'
+    request_args = request.args.copy()
+    request_args = request_args.to_dict() if hasattr(request_args, 'to_dict') else dict(request_args)
+    request_args['payment_method'] = 'transfer'
+    with current_app.test_request_context(query_string=request_args):
+        return sales()
 
 @reports.route('/reports/purchases')
 @login_required
@@ -439,7 +475,7 @@ def loans():
                          statuses=statuses,
                          total_quantity=total_quantity,
                          total_value=total_value,
-                         now=datetime.utcnow())
+                         now=datetime.now(pytz.timezone('Africa/Nairobi')))
 
 @reports.route('/reports/transfers')
 @login_required
@@ -519,7 +555,7 @@ def export_transfers_excel(transfers):
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'transfers_report_{datetime.now().strftime("%Y-%m-%d")}.xlsx'
+        download_name=f'transfers_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.xlsx'
     )
 
 def export_transfers_pdf(transfers, summary, start_date, end_date):
@@ -555,7 +591,7 @@ def export_transfers_pdf(transfers, summary, start_date, end_date):
         buffer,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'transfers_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        download_name=f'transfers_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
     )
 
 def generate_pdf(data, title, headers):
@@ -610,7 +646,7 @@ def generate_pdf(data, title, headers):
         alignment=2,
         textColor=colors.grey
     )
-    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", date_style))
+    elements.append(Paragraph(f"Generated on: {datetime.now(pytz.timezone('Africa/Nairobi')).strftime('%Y-%m-%d %H:%M:%S')}", date_style))
     elements.append(Spacer(1, 30))
     
     # Calculate column widths based on content
@@ -697,7 +733,7 @@ def export_transfers_csv(transfers, summary, start_date, end_date):
     # Write report header
     writer.writerow(['Transfer Report'])
     writer.writerow([f'Period: {start_date} to {end_date}'])
-    writer.writerow([f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M")}'])
+    writer.writerow([f'Generated on: {datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d %H:%M")}'])
     writer.writerow([])  # Empty row
     
     # Write headers
@@ -733,7 +769,7 @@ def export_transfers_csv(transfers, summary, start_date, end_date):
         output,
         mimetype='text/csv',
         as_attachment=True,
-        download_name=f'transfers_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        download_name=f'transfers_report_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.csv'
     )
 
 @reports.route('/reports/export/<report_type>/<format>')
@@ -765,8 +801,22 @@ def export_csv(report_type, start_datetime, end_datetime):
     buffer.write(b'\xef\xbb\xbf')
     
     # Write report header
-    current_date = datetime.now().strftime('%Y-%m-%d %H:%M')
-    buffer.write(f'Report Type: {report_type.title()} Report\n'.encode('utf-8'))
+    current_date = datetime.now(pytz.timezone("Africa/Nairobi")).strftime('%Y-%m-%d %H:%M')
+    payment_method = request.args.get('payment_method', '')
+    if report_type == 'sales':
+        if payment_method == 'cheque':
+            report_title = 'Cheque Payment Report'
+            file_prefix = 'cheque_payment_report'
+        elif payment_method == 'transfer':
+            report_title = 'Transfer Payment Report'
+            file_prefix = 'transfer_payment_report'
+        else:
+            report_title = 'Sales Report'
+            file_prefix = 'sales_report'
+    else:
+        report_title = f'{report_type.title()} Report'
+        file_prefix = f'{report_type}_report'
+    buffer.write(f'Report Type: {report_title}\n'.encode('utf-8'))
     buffer.write(f'Generated on: {current_date}\n'.encode('utf-8'))
     if start_datetime and end_datetime:
         buffer.write(f'Period: {format_date(start_datetime)} to {format_date(end_datetime)}\n'.encode('utf-8'))
@@ -781,6 +831,10 @@ def export_csv(report_type, start_datetime, end_datetime):
             query = query.filter(func.date(Transaction.date) >= start_datetime.date())
         if end_datetime:
             query = query.filter(func.date(Transaction.date) <= end_datetime.date())
+            
+        # Apply payment method filter if provided
+        if payment_method:
+            query = query.filter(Transaction.payment_method == payment_method)
             
         # Get filtered sales
         sales = query.order_by(Transaction.date).all()
@@ -892,11 +946,25 @@ def export_csv(report_type, start_datetime, end_datetime):
         buffer,
         mimetype='text/csv',
         as_attachment=True,
-        download_name=f'{report_type}_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.csv'
     )
 
 def export_pdf(report_type, start_datetime, end_datetime):
+    payment_method = request.args.get('payment_method', '')
     if report_type == 'sales':
+        if payment_method == 'cheque':
+            title = 'Cheque Payment Report'
+            file_prefix = 'cheque_payment_report'
+        elif payment_method == 'transfer':
+            title = 'Transfer Payment Report'
+            file_prefix = 'transfer_payment_report'
+        else:
+            title = 'Sales Report'
+            file_prefix = 'sales_report'
+        # Add date range to title if dates are provided
+        if start_datetime and end_datetime:
+            title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
+        
         # Create base query with type filter
         query = Transaction.query.filter_by(type='sale')
         
@@ -905,6 +973,10 @@ def export_pdf(report_type, start_datetime, end_datetime):
             query = query.filter(func.date(Transaction.date) >= start_datetime.date())
         if end_datetime:
             query = query.filter(func.date(Transaction.date) <= end_datetime.date())
+            
+        # Apply payment method filter if provided
+        if payment_method:
+            query = query.filter(Transaction.payment_method == payment_method)
             
         # Get filtered sales
         sales = query.order_by(Transaction.date).all()
@@ -928,18 +1000,12 @@ def export_pdf(report_type, start_datetime, end_datetime):
         data.append(['', '', '', '', '', ''])  # Empty row
         data.append(['Totals', '', str(total_quantity), '', f"{total_amount:.2f} NKF", ''])
         
-        title = "Sales Report"
-        
-        # Add date range to title if dates are provided
-        if start_datetime and end_datetime:
-            title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
-            
         buffer = generate_pdf(data, title, headers)
         return send_file(
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'sales_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+            download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
         )
 
     elif report_type == 'bincard':
@@ -991,7 +1057,7 @@ def export_pdf(report_type, start_datetime, end_datetime):
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'bincard_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+            download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
         )
     
     elif report_type == 'credits':
@@ -1046,7 +1112,7 @@ def export_pdf(report_type, start_datetime, end_datetime):
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'credits_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+            download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
         )
 
     elif report_type == 'loans':
@@ -1092,7 +1158,7 @@ def export_pdf(report_type, start_datetime, end_datetime):
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'loans_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+            download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
         )
     
     elif report_type == 'purchases':
@@ -1138,7 +1204,7 @@ def export_pdf(report_type, start_datetime, end_datetime):
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'purchases_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+            download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
         )
     
     else:
@@ -1213,7 +1279,7 @@ def export_disposals_pdf(disposals, summary, start_date, end_date):
         buffer,
         mimetype='application/pdf',
         as_attachment=True,
-        download_name=f'disposals_report_{datetime.now().strftime("%Y-%m-%d")}.pdf'
+        download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.pdf'
     )
 
 def export_disposals_csv(disposals, summary, start_date, end_date):
@@ -1224,7 +1290,7 @@ def export_disposals_csv(disposals, summary, start_date, end_date):
     # Write report header
     writer.writerow(['Parts Disposal Report'])
     writer.writerow([f'Period: {start_date} to {end_date}'])
-    writer.writerow([f'Generated on: {datetime.now().strftime("%Y-%m-%d %H:%M")}'])
+    writer.writerow([f'Generated on: {datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d %H:%M")}'])
     writer.writerow([])  # Empty row
     
     # Write headers
@@ -1256,5 +1322,5 @@ def export_disposals_csv(disposals, summary, start_date, end_date):
         BytesIO(output.getvalue().encode('utf-8-sig')),  # UTF-8 with BOM for Excel
         mimetype='text/csv',
         as_attachment=True,
-        download_name=f'disposals_report_{datetime.now().strftime("%Y-%m-%d")}.csv'
+        download_name=f'{file_prefix}_{datetime.now(pytz.timezone("Africa/Nairobi")).strftime("%Y-%m-%d")}.csv'
     ) 

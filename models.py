@@ -193,6 +193,12 @@ class Loan(db.Model):
                              foreign_keys=[customer_id],
                              primaryjoin='Loan.customer_id == Customer.id')
 
+    @property
+    def is_fully_paid(self):
+        total_amount = self.quantity * (self.selling_price or 0)
+        total_paid = sum(payment.amount for payment in self.payments)
+        return total_paid >= total_amount and total_amount > 0
+
 class CreditPurchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))
@@ -237,6 +243,8 @@ class Transaction(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     status = db.Column(db.String(20))  # pending, paid, overdue
     voided = db.Column(db.Boolean, default=False)
+    payment_method = db.Column(db.String(20))  # cash, cheque, transfer
+    notes = db.Column(db.Text)
     
     # Relationships with explicit foreign keys and primaryjoin
     part = db.relationship('Part', 
@@ -248,6 +256,7 @@ class Transaction(db.Model):
                          backref=db.backref('transactions', lazy=True),
                          foreign_keys=[user_id],
                          primaryjoin='Transaction.user_id == User.id')
+    
 
 class Transfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -492,6 +501,16 @@ class ExchangeRate(db.Model):
 class PartName(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
+
+class LoanPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    loan_id = db.Column(db.Integer, db.ForeignKey('loan.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    method = db.Column(db.String(50))  # e.g., cash, cheque, transfer
+    notes = db.Column(db.String(255))
+
+    loan = db.relationship('Loan', backref=db.backref('payments', lazy=True))
 
 # # Add SQLAlchemy event listeners
 # @event.listens_for(Purchase, 'after_insert')

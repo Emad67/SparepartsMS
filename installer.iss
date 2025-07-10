@@ -4,19 +4,13 @@
 #define MyAppExeName "SparePartsMS.exe"
 
 [Setup]
-AppId={{F7A5F7E2-1234-4567-8901-ABCDEF123456}}
-AppName={#MyAppName}
-AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\SparePartsMS
-DefaultGroupName={#MyAppName}
-AllowNoIcons=yes
-LicenseFile=LICENSE
-OutputDir=installer_output
+AppName=Spare Parts Management System
+AppVersion=1.0
+DefaultDirName={pf}\SparePartsMS
+DefaultGroupName=Spare Parts MS
+OutputDir=.
 OutputBaseFilename=SparePartsMS_Setup
-Compression=lzma
-SolidCompression=yes
-PrivilegesRequired=admin
+SetupIconFile=static\favicon.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -26,26 +20,15 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "dist\SparePartsMS.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "migrations\*"; DestDir: "{app}\migrations"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: ".env"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs
+Source: "templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs
+Source: "instance\*"; DestDir: "{app}\instance"; Flags: ignoreversion recursesubdirs
+Source: "sparepart\*"; DestDir: "{app}\sparepart"; Flags: ignoreversion recursesubdirs
+Source: "instance\spms.db"; DestDir: "{app}\instance"; Flags: ignoreversion
+; Add other files as needed
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autodesktop}\Spare Parts MS"; Filename: "{app}\SparePartsMS.exe"
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-[Code]
-function InitializeSetup(): Boolean;
-begin
-  Result := True;
-  if not RegKeyExists(HKLM, 'SOFTWARE\Python\PythonCore') then
-  begin
-    MsgBox('Python is not installed. Please install Python 3.8 or higher before continuing.', mbError, MB_OK);
-    Result := False;
-  end;
-end; 

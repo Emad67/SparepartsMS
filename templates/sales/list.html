@@ -16,7 +16,9 @@
             </select>
         </div>
     </div>
-    
+    <div class="mb-3">
+        <a href="#" id="exportPdfBtn" class="btn btn-primary">Export PDF</a>
+    </div>
     <div class="table-responsive">
         <table class="table table-striped">
             <thead>
@@ -27,6 +29,8 @@
                     <th>Price</th>
                     <th>Total</th>
                     <th>Sold By</th>
+                    <th>Payment Method</th>
+                    <th>Note</th>
                 </tr>
             </thead>
             <tbody>
@@ -36,8 +40,10 @@
                     <td>{{ sale.part.name if sale.part else 'N/A' }}</td>
                     <td>{{ sale.quantity }}</td>
                     <td>{{ "{:,.2f}".format( sale.price) }} NKF</td>
-                    <td>{{ "{:,.2f}".format( sale.price * sale.quantity) }} NKF</td>
+                    <td>{{ "{:,.2f}".format(sale.price * sale.quantity) }} NKF</td>
                     <td>{{ sale.user.username if sale.user else 'N/A' }}</td>
+                    <td>{{ sale.payment_method|capitalize if sale.payment_method else 'N/A' }}</td>
+                    <td>{{ sale.notes or '' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -79,6 +85,23 @@ $(document).ready(function() {
     $('#searchInput').on('keyup', filterTable);
     $('#startDate, #endDate').on('change', filterTable);
     $('#userFilter').on('change', filterTable);
+
+    // Export PDF button logic
+    $('#exportPdfBtn').on('click', function(e) {
+        e.preventDefault();
+        var startDate = $('#startDate').val();
+        var endDate = $('#endDate').val();
+        var selectedUser = $('#userFilter').val();
+        var params = [];
+        if (startDate) params.push('start_date=' + encodeURIComponent(startDate));
+        if (endDate) params.push('end_date=' + encodeURIComponent(endDate));
+        if (selectedUser) params.push('user=' + encodeURIComponent(selectedUser));
+        var url = '/sales/export/pdf';
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+        window.location.href = url;
+    });
 });
 </script>
 {% endblock %} 

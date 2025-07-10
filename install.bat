@@ -31,15 +31,15 @@ python license_generator.py
 
 REM Create executable
 echo Creating executable...
-pyinstaller SparePartsMS.spec
+pyinstaller --onefile --windowed SparePartsMS.py
 
 REM Create desktop shortcut
 echo Creating desktop shortcut...
 echo Set oWS = WScript.CreateObject("WScript.Shell") > CreateShortcut.vbs
 echo sLinkFile = oWS.SpecialFolders("Desktop") ^& "\Spare Parts MS.lnk" >> CreateShortcut.vbs
 echo Set oLink = oWS.CreateShortcut(sLinkFile) >> CreateShortcut.vbs
-echo oLink.TargetPath = "%CD%\dist\SparePartsMS\SparePartsMS.exe" >> CreateShortcut.vbs
-echo oLink.WorkingDirectory = "%CD%\dist\SparePartsMS" >> CreateShortcut.vbs
+echo oLink.TargetPath = "%CD%\dist\SparePartsMS.exe" >> CreateShortcut.vbs
+echo oLink.WorkingDirectory = "%CD%\dist" >> CreateShortcut.vbs
 echo oLink.Description = "Spare Parts Management System" >> CreateShortcut.vbs
 echo oLink.IconLocation = "%CD%\static\favicon.ico" >> CreateShortcut.vbs
 echo oLink.Save >> CreateShortcut.vbs

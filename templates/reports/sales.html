@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">Sales Report</h2>
+    <h2 class="mb-4">{{ report_title }}</h2>
     
     <!-- Date Filter -->
     <div class="card mb-4">
@@ -31,6 +31,15 @@
                     <label class="form-label">Search Part</label>
                     <input type="text" class="form-control" name="part_search" 
                            value="{{ part_search }}" placeholder="Part name or number...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Payment Method</label>
+                    <select class="form-select" name="payment_method">
+                        <option value="">All Methods</option>
+                        <option value="cash" {% if payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                        <option value="cheque" {% if payment_method == 'cheque' %}selected{% endif %}>Cheque</option>
+                        <option value="transfer" {% if payment_method == 'transfer' %}selected{% endif %}>Transfer</option>
+                    </select>
                 </div>
                 <div class="col-auto align-self-end">
                     <button type="submit" class="btn btn-primary">Filter</button>
@@ -70,8 +79,8 @@
     
     <!-- Export Buttons -->
     <div class="btn-group mb-3">
-        <a href="{{ url_for('reports.export', report_type='sales', format='csv', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-success">Export CSV</a>
-        <a href="{{ url_for('reports.export', report_type='sales', format='pdf', start_date=start_date, end_date=end_date, status=selected_status) }}" class="btn btn-danger">Export PDF</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='csv', start_date=start_date, end_date=end_date, status=selected_status, payment_method=payment_method) }}" class="btn btn-success">Export CSV</a>
+        <a href="{{ url_for('reports.export', report_type='sales', format='pdf', start_date=start_date, end_date=end_date, status=selected_status, payment_method=payment_method) }}" class="btn btn-danger">Export PDF</a>
     </div>
     
     <!-- Sales Table -->
@@ -87,6 +96,8 @@
                         <th>Unit Price</th>
                         <th>Total</th>
                         <th>Sold By</th>
+                        <th>Payment Method</th>
+                        <th>Payment Note</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,6 +110,8 @@
                         <td>{{ "{:,.2f}".format( sale.price ) }} NKF</td>
                         <td>{{ "{:,.2f}".format( sale.price * sale.quantity) }} NKF</td>
                         <td>{{ sale.user.username }}</td>
+                        <td>{{ sale.payment_method|capitalize if sale.payment_method else 'N/A' }}</td>
+                        <td>{{ sale.notes or '' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import inspect
 from flask import current_app
 import random
+import pytz
 
 purchases = Blueprint('purchases', __name__)
 
@@ -51,7 +52,7 @@ def bulk_purchase():
                     raise ValueError('Missing required fields in item data')
 
                 # Generate unique invoice number
-                timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                timestamp = datetime.now(pytz.timezone('Africa/Nairobi')).strftime("%Y%m%d%H%M%S")
                 random_suffix = ''.join([str(random.randint(0, 9)) for _ in range(4)])
                 invoice_number = f'BULK-{timestamp}-{random_suffix}'
 
@@ -113,7 +114,7 @@ def bulk_purchase():
                     description=f'Bulk purchase received: {quantity} units of {part.name}',
                     reference_id=str(purchase.id),
                     user_id=current_user.id,
-                    date=datetime.utcnow(),
+                    date=datetime.now(pytz.timezone('Africa/Nairobi')),
                     exchange_rate=ExchangeRate.get_rate_for_date()
                 )
                 db.session.add(financial_transaction)
@@ -265,7 +266,7 @@ def receive_purchase(id):
             description=f'Purchase received: {purchase.quantity} units of {part.name} (Invoice #{purchase.invoice_number})',
             reference_id=str(purchase.id),
             user_id=current_user.id,
-            date=datetime.utcnow(),
+            date=datetime.now(pytz.timezone('Africa/Nairobi')),
             exchange_rate=ExchangeRate.get_rate_for_date()  # Store the exchange rate used
         )
         db.session.add(financial_transaction)

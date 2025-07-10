@@ -4,6 +4,7 @@ from models import Part, Transaction, Loan, CreditPurchase, db
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from utils.date_utils import get_start_of_day, get_end_of_day, format_date
+import pytz
 
 dashboard = Blueprint('dashboard', __name__)
 
@@ -11,9 +12,9 @@ dashboard = Blueprint('dashboard', __name__)
 @login_required
 def index():
     try:
-        today = datetime.utcnow().date()
-        today_start = get_start_of_day(datetime.utcnow())
-        today_end = get_end_of_day(datetime.utcnow())
+        today = datetime.now(pytz.timezone('Africa/Nairobi')).date()
+        today_start = get_start_of_day(datetime.now(pytz.timezone('Africa/Nairobi')))
+        today_end = get_end_of_day(datetime.now(pytz.timezone('Africa/Nairobi')))
         
         # Today's sales total
         today_sales = db.session.query(func.sum(Transaction.price * Transaction.quantity))\
@@ -51,7 +52,7 @@ def index():
         stock_levels = [part.stock_level for part in low_stock_parts_data]
         
         return render_template('dashboard/index.html',
-                             today=format_date(datetime.utcnow()),
+                             today=format_date(datetime.now(pytz.timezone('Africa/Nairobi'))),
                              total_parts=today_sales,
                              low_stock_parts=low_stock_parts,
                              active_loans=active_loans,
