@@ -199,6 +199,12 @@ class Loan(db.Model):
         total_paid = sum(payment.amount for payment in self.payments)
         return total_paid >= total_amount and total_amount > 0
 
+    @property
+    def outstanding_amount(self):
+        total_amount = self.quantity * (self.selling_price or 0)
+        total_paid = sum(payment.amount for payment in self.payments)
+        return max(total_amount - total_paid, 0)
+
 class CreditPurchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('supplier.id'))

@@ -16,9 +16,10 @@ def index():
         today_start = get_start_of_day(datetime.now(pytz.timezone('Africa/Nairobi')))
         today_end = get_end_of_day(datetime.now(pytz.timezone('Africa/Nairobi')))
         
-        # Today's sales total
+        # Today's sales total - exclude cancelled sales
         today_sales = db.session.query(func.sum(Transaction.price * Transaction.quantity))\
             .filter(Transaction.type == 'sale',
+                   (Transaction.status == None) | (Transaction.status != 'cancelled'),
                    Transaction.date >= today_start,
                    Transaction.date <= today_end).scalar() or 0
         
@@ -40,6 +41,7 @@ def index():
             date_end = get_end_of_day(datetime.combine(date, datetime.min.time()))
             sales_sum = db.session.query(func.sum(Transaction.price * Transaction.quantity))\
                 .filter(Transaction.type == 'sale',
+                       (Transaction.status == None) | (Transaction.status != 'cancelled'),
                        Transaction.date >= date_start,
                        Transaction.date <= date_end).scalar() or 0
             sales_data.insert(0, float(sales_sum))

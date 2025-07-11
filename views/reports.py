@@ -141,8 +141,10 @@ def sales():
     # Get date range with fallback to last 30 days
     start_datetime, end_datetime = parse_date_range(start_date_str, end_date_str)
     
-    # Base query
-    query = Transaction.query.filter(Transaction.type == 'sale')
+    # Base query - exclude cancelled sales
+    query = Transaction.query.filter(Transaction.type == 'sale').filter(
+        ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+    )
     
     # Apply date filters using func.date() to compare only the date part
     if start_datetime:
@@ -823,8 +825,10 @@ def export_csv(report_type, start_datetime, end_datetime):
     buffer.write('\n'.encode('utf-8'))
     
     if report_type == 'sales':
-        # Create base query with type filter
-        query = Transaction.query.filter_by(type='sale')
+        # Create base query with type filter - exclude cancelled sales
+        query = Transaction.query.filter_by(type='sale').filter(
+            ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+        )
         
         # Apply date filters using func.date() to compare only the date part
         if start_datetime:
@@ -965,8 +969,10 @@ def export_pdf(report_type, start_datetime, end_datetime):
         if start_datetime and end_datetime:
             title += f" ({format_date(start_datetime)} to {format_date(end_datetime)})"
         
-        # Create base query with type filter
-        query = Transaction.query.filter_by(type='sale')
+        # Create base query with type filter - exclude cancelled sales
+        query = Transaction.query.filter_by(type='sale').filter(
+            ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+        )
         
         # Apply date filters using func.date() to compare only the date part
         if start_datetime:

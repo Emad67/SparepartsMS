@@ -97,7 +97,7 @@
                                     <td>{{ part.name|default('-') }}</td>
                                     <td>{{ part.code|default('-') }}</td>
                                     <td>{{ part.substitute_part_number|default('-') }}</td>
-                                    <td>{% if part.selling_price %}NKF {{ "{:,.2f}".format(part.selling_price) }}{% else %}-{% endif %}</td>
+                                    <td>{% if part.selling_price %} {{ "{:,.2f}".format(part.selling_price) }}{% else %}-{% endif %} NKF</td>
                                     <td>{{ part.stock_level|default(0) }}</td>
                                     <td>{% if part.min_price %}NKF {{ "{:,.2f}".format(part.min_price) }}{% else %}-{% endif %}</td>
                                     <td>{% if part.max_price %}NKF {{ "{:,.2f}".format(part.max_price) }}{% else %}-{% endif %}</td>

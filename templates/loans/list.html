@@ -48,7 +48,7 @@
                     <th>Customer</th>
                     <th>Part</th>
                     <th>Quantity</th>
-                    <th>Amount</th>
+                    <th>Outstanding Amount</th>
                     <th>Total Amount</th>
                     <th>Loan Date</th>
                     <th>Due Date</th>
@@ -64,13 +64,9 @@
                     <td>{{ loan.part.part_number }} - {{ loan.part.name }}</td>
                     <td>{{ loan.quantity }}</td>
                     <td>
-                        {% if loan.part and loan.part.selling_price %}
-                            {{ "{:,.2f}".format(loan.part.selling_price) }} NKF
-                        {% else %}
-                            N/A
-                        {% endif %}
+                        {{ "{:,.2f}".format(loan.outstanding_amount) }} NKF
                     </td>
-                    <td>{% if loan.part.selling_price is not none %}{{ "{:,.2f}".format(loan.part.selling_price * loan.quantity) }} NKF{% else %}N/A{% endif %}</td>
+                    <td>{{ "{:,.2f}".format(loan.quantity * (loan.selling_price or 0)) }} NKF</td>
                     <td>{{ loan.loan_date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ loan.due_date.strftime('%Y-%m-%d') }}</td>
                     <td>

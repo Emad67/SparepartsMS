@@ -782,6 +782,7 @@ def void_transaction(transaction_id):
         transaction = FinancialTransaction.query.get_or_404(transaction_id)
         current_app.logger.info(f"Processing void request for transaction ID: {transaction_id}")
         current_app.logger.info(f"Transaction type: {transaction.type}, category: {transaction.category}")
+        current_app.logger.info(f"Transaction category: '{transaction.category}'")
         
         # Validate transaction can be voided
         if transaction.voided:
@@ -823,7 +824,7 @@ def void_transaction(transaction_id):
             current_app.logger.info(f"Processing reference ID: {transaction.reference_id}")
             
             # Handle sale-related transactions
-            if transaction.category in ['sale', 'Parts Sale']:
+            if transaction.category.strip().lower() in ['sale', 'sales', 'parts sale', 'parts sales', 'part sales']:
                 sale = Transaction.query.filter_by(id=transaction.reference_id).first()
                 if not sale:
                     current_app.logger.error(f"No sale found with ID {transaction.reference_id}")
@@ -835,6 +836,7 @@ def void_transaction(transaction_id):
                 
                 # Update sale status
                 sale.status = 'cancelled'
+                sale.voided = True  # Ensure voided column is set
                 
                 # Get the original bincard entry to find warehouse information
                 original_bincard = BinCard.query.filter_by(

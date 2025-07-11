@@ -21,7 +21,7 @@ sales = Blueprint('sales', __name__)
 @login_required
 def list_sales():
     sales = Transaction.query.filter_by(type='sale').filter(
-        (Transaction.status == None) | (Transaction.status != 'cancelled')
+        ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
     ).order_by(Transaction.date.desc()).all()
     # Get unique users who have made sales
     users = User.query.join(Transaction).filter(Transaction.type == 'sale').distinct().all()
@@ -124,7 +124,9 @@ def export_pdf():
     end_date = request.args.get('end_date')
     user = request.args.get('user')
 
-    query = Transaction.query.filter_by(type='sale')
+    query = Transaction.query.filter_by(type='sale').filter(
+        ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+    )
     if start_date:
         query = query.filter(func.date(Transaction.date) >= start_date)
     if end_date:
