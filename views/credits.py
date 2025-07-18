@@ -100,6 +100,53 @@ def add_credit():
                          parts=parts,
                          warehouses=warehouses)
 
+@credits.route('/credits/bulk', methods=['GET', 'POST'])
+@login_required
+@role_required('admin', 'manager')
+def bulk_credit():
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            if not data or 'items' not in data:
+                return {'success': False, 'message': 'No items provided'}, 400
+            warehouse_id = data.get('warehouse_id')
+            supplier_id = data.get('supplier_id')
+            due_days = int(data.get('due_days', 30))
+            if not warehouse_id:
+                return {'success': False, 'message': 'Warehouse is required'}, 400
+            if not supplier_id:
+                return {'success': False, 'message': 'Supplier is required'}, 400
+            from datetime import datetime, timedelta
+            import pytz
+            db.session.begin_nested()
+            for item in data['items']:
+                part_id = item.get('part_id')
+                quantity = item.get('quantity')
+                unit_price = item.get('unit_price')
+                if not all([part_id, quantity, unit_price]):
+                    raise ValueError('Missing required fields in item data')
+                credit = CreditPurchase(
+                    supplier_id=supplier_id,
+                    part_id=part_id,
+                    warehouse_id=warehouse_id,
+                    quantity=quantity,
+                    price=unit_price,
+                    purchase_date=datetime.now(pytz.timezone('Africa/Nairobi')),
+                    due_date=datetime.now(pytz.timezone('Africa/Nairobi')) + timedelta(days=due_days),
+                    status='pending'
+                )
+                db.session.add(credit)
+            db.session.commit()
+            return {'success': True, 'message': 'Bulk credit purchase processed successfully'}
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error in bulk_credit: {str(e)}")
+            return {'success': False, 'message': str(e)}, 500
+    parts = Part.query.all()
+    warehouses = Warehouse.query.all()
+    suppliers = Supplier.query.all()
+    return render_template('credits/bulk_entry.html', parts=parts, warehouses=warehouses, suppliers=suppliers)
+
 @credits.route('/credits/<int:id>/mark-paid', methods=['POST'])
 @login_required
 @role_required('admin', 'manager')

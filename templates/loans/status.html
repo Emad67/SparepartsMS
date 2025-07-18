@@ -113,6 +113,7 @@
                 <table class="table table-striped">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Date</th>
                             <th>Amount</th>
                             <th>Method</th>
@@ -122,6 +123,7 @@
                     <tbody>
                         {% for payment in loan.payments|sort(attribute='date', reverse=true) %}
                         <tr>
+                            <td>{{ payment.id }}</td>
                             <td>{{ payment.date.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ "{:,.2f}".format(payment.amount) }} NKF</td>
                             <td>

@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .bulk-table-container {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        padding: 24px 18px 18px 18px;
+        margin-bottom: 32px;
+    }
+    .bulk-table th, .bulk-table td {
+        vertical-align: middle;
+        text-align: center;
+        font-size: 0.97rem;
+        padding: 8px 6px;
+    }
+    .bulk-table th {
+        background: #f8fafb;
+        font-weight: 600;
+    }
+    .bulk-table tfoot td {
+        background: #f4f6f8;
+        font-weight: 600;
+    }
+    .bulk-form-row {
+        justify-content: center;
+        gap: 24px;
+        margin-bottom: 18px;
+    }
+    .bulk-form-row .form-label {
+        font-weight: 500;
+    }
+    .bulk-table input[type=number], .bulk-table input[type=text] {
+        min-width: 60px;
+        max-width: 110px;
+        text-align: right;
+        font-size: 0.97rem;
+        padding: 2px 4px;
+    }
+    @media (max-width: 1200px) {
+        .bulk-table th, .bulk-table td {
+            font-size: 0.92rem;
+            padding: 6px 2px;
+        }
+        .bulk-table input[type=number], .bulk-table input[type=text] {
+            max-width: 80px;
+        }
+    }
+    .wide-part-select {
+        min-width: 300px;
+        max-width: 1000px;
+    }
+</style>
+<div class="container-fluid px-2">
+    <div class="bulk-table-container">
+        <div class="d-flex justify-content-end mb-2">
+            <button type="button" class="btn btn-outline-success me-2" id="exportExcelBtn">Export to Excel</button>
+            <button type="button" class="btn btn-outline-danger" id="exportPdfBtn">Export to PDF</button>
+        </div>
+        <h2 class="mb-4 text-center">Bulk Credit Purchase Entry</h2>
+    <form id="bulkCreditForm">
+            <div class="row bulk-form-row align-items-end">
+                <div class="col-md-1 col-12">
+                    <label for="aedToUsd" class="form-label">AED TO USD</label>
+                    <input type="number" class="form-control" id="aedToUsd" name="aed_to_usd" step="0.01" value="3.67" required>
+                </div>
+                <div class="col-md-1 col-12">
+                    <label for="usdToNkf" class="form-label">USD TO NKF</label>
+                    <input type="number" class="form-control" id="usdToNkf" name="usd_to_nkf" step="0.01" value="16.2" required>
+                </div>
+                <div class="col-md-1 col-12">
+                    <label for="weightPrice" class="form-label">Weight Price</label>
+                    <input type="number" class="form-control" id="weightPrice" name="weight_price" step="0.01" value="350" required>
+                </div>
+                <div class="col-md-3 col-12 ms-auto text-end">
+                    <label for="warehouseSelect" class="form-label">Warehouse</label>
+                    <select class="form-select" id="warehouseSelect" name="warehouse_id" required>
+                        {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}" {% if loop.first %}selected{% endif %}>{{ warehouse.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 col-12 ms-auto text-end">
+                    <label for="supplierSelect" class="form-label">Supplier</label>
+                    <select class="form-select" id="supplierSelect" name="supplier_id" required>
+                        {% for supplier in suppliers %}
+                            <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-12 ms-auto text-end">
+                    <label for="dueDays" class="form-label">Due in (days)</label>
+                    <input type="number" class="form-control" id="dueDays" name="due_days" value="30" min="1" required>
+                </div>
+            </div>
+            <div class="table-responsive mb-2">
+                <table class="table table-bordered table-striped bulk-table" id="bulkTable">
+                <thead>
+                    <tr>
+                        <th>Part No</th>
+                        <th>Description</th>
+                        <th>Quantity</th>
+                        <th>Weight</th>
+                        <th>Unit AED Price</th>
+                        <th>Total AED Price</th>
+                        <th>Unit in NKF</th>
+                        <th>Total in NKF</th>
+                        <th>Unit Weight Price</th>
+                        <th>Total Weight Price</th>
+                        <th>Unit VAT AED</th>
+                        <th>Total VAT AED</th>
+                        <th>Unit VAT in NKF</th>
+                        <th>Total VAT in NKF</th>
+                        <th>Total Unit Price</th>
+                        <th>Total NKF Price</th>
+                        <th>Total Without VAT</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td><label>Over All Total</label></td>
+                        <td></td>
+                        <td><input type="number" class="form-control" id="totalQuantity" readonly></td>
+                        <td><input type="number" class="form-control" id="totalWeight" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitAedPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalAedPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitInNkf" readonly></td>
+                        <td><input type="number" class="form-control" id="totalInNkf" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitWeightPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalWeightPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitVatAed" readonly></td>
+                        <td><input type="number" class="form-control" id="totalVatAed" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitVatInNkf" readonly></td>
+                        <td><input type="number" class="form-control" id="totalVatInNkf" readonly></td>
+                        <td><input type="number" class="form-control" id="totalUnitPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalNkfPrice" readonly></td>
+                        <td><input type="number" class="form-control" id="totalWithoutVat" readonly></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            </div>
+            <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+            <button type="button" class="btn btn-success" id="addRowBtn">Add Row</button>
+        <button type="submit" class="btn btn-primary">Submit Bulk Credit Purchase</button>
+        <a href="{{ url_for('credits.list_credits') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+    </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.7.0/jspdf.plugin.autotable.min.js"></script>
+<script>
+$(document).ready(function() {
+    function calculateRowValues(row) {
+        const quantity = parseFloat(row.find('.quantity').val()) || 0;
+        const weight = parseFloat(row.find('.weight').val()) || 0;
+        const unitAedPrice = parseFloat(row.find('.unit-aed-price').val()) || 0;
+        const aedToUsd = parseFloat($('#aedToUsd').val()) || 0;
+        const usdToNkf = parseFloat($('#usdToNkf').val()) || 0;
+        const weightPrice = parseFloat($('#weightPrice').val()) || 0;
+
+        const totalAedPrice = quantity * unitAedPrice;
+        const unitInNkf = (unitAedPrice / aedToUsd) * usdToNkf;
+        const totalInNkf = unitInNkf * quantity;
+        const unitWeightPrice = weight * weightPrice;
+        const totalWeightPrice = unitWeightPrice * quantity;
+        const unitVatAed = unitAedPrice * 0.05;
+        const totalVatAed = unitVatAed * quantity;
+        const unitVatInNkf = (unitVatAed / aedToUsd) * usdToNkf;
+        const totalVatInNkf = unitVatInNkf * quantity;
+        const totalUnitPrice = unitInNkf + unitWeightPrice + unitVatInNkf;
+        const totalNkfPrice = totalInNkf + totalWeightPrice + totalVatInNkf;
+        const totalWithoutVat = totalNkfPrice - totalVatInNkf;
+
+        row.find('.total-aed-price').val(totalAedPrice.toFixed(2));
+        row.find('.unit-in-nkf').val(unitInNkf.toFixed(2));
+        row.find('.total-in-nkf').val(totalInNkf.toFixed(2));
+        row.find('.unit-weight-price').val(unitWeightPrice.toFixed(2));
+        row.find('.total-weight-price').val(totalWeightPrice.toFixed(2));
+        row.find('.unit-vat-aed').val(unitVatAed.toFixed(2));
+        row.find('.total-vat-aed').val(totalVatAed.toFixed(2));
+        row.find('.unit-vat-in-nkf').val(unitVatInNkf.toFixed(2));
+        row.find('.total-vat-in-nkf').val(totalVatInNkf.toFixed(2));
+        row.find('.total-unit-price').val(totalUnitPrice.toFixed(2));
+        row.find('.total-nkf-price').val(totalNkfPrice.toFixed(2));
+        row.find('.total-without-vat').val(totalWithoutVat.toFixed(2));
+        updateTotals();
+    }
+    function updateTotals() {
+        let totalQuantity = 0;
+        let totalWeight = 0;
+        let totalUnitAedPrice = 0;
+        let totalAedPrice = 0;
+        let totalUnitInNkf = 0;
+        let totalInNkf = 0;
+        let totalUnitWeightPrice = 0;
+        let totalWeightPrice = 0;
+        let totalUnitVatAed = 0;
+        let totalVatAed = 0;
+        let totalUnitVatInNkf = 0;
+        let totalVatInNkf = 0;
+        let totalUnitPrice = 0;
+        let totalNkfPrice = 0;
+        let totalWithoutVat = 0;
+        $('#bulkTable tbody tr').each(function() {
+            totalQuantity += parseFloat($(this).find('.quantity').val()) || 0;
+            totalWeight += parseFloat($(this).find('.weight').val()) || 0;
+            totalUnitAedPrice += parseFloat($(this).find('.unit-aed-price').val()) || 0;
+            totalAedPrice += parseFloat($(this).find('.total-aed-price').val()) || 0;
+            totalUnitInNkf += parseFloat($(this).find('.unit-in-nkf').val()) || 0;
+            totalInNkf += parseFloat($(this).find('.total-in-nkf').val()) || 0;
+            totalUnitWeightPrice += parseFloat($(this).find('.unit-weight-price').val()) || 0;
+            totalWeightPrice += parseFloat($(this).find('.total-weight-price').val()) || 0;
+            totalUnitVatAed += parseFloat($(this).find('.unit-vat-aed').val()) || 0;
+            totalVatAed += parseFloat($(this).find('.total-vat-aed').val()) || 0;
+            totalUnitVatInNkf += parseFloat($(this).find('.unit-vat-in-nkf').val()) || 0;
+            totalVatInNkf += parseFloat($(this).find('.total-vat-in-nkf').val()) || 0;
+            totalUnitPrice += parseFloat($(this).find('.total-unit-price').val()) || 0;
+            totalNkfPrice += parseFloat($(this).find('.total-nkf-price').val()) || 0;
+            totalWithoutVat += parseFloat($(this).find('.total-without-vat').val()) || 0;
+        });
+        $('#totalQuantity').val(totalQuantity);
+        $('#totalWeight').val(totalWeight.toFixed(2));
+        $('#totalUnitAedPrice').val(totalUnitAedPrice.toFixed(2));
+        $('#totalAedPrice').val(totalAedPrice.toFixed(2));
+        $('#totalUnitInNkf').val(totalUnitInNkf.toFixed(2));
+        $('#totalInNkf').val(totalInNkf.toFixed(2));
+        $('#totalUnitWeightPrice').val(totalUnitWeightPrice.toFixed(2));
+        $('#totalWeightPrice').val(totalWeightPrice.toFixed(2));
+        $('#totalUnitVatAed').val(totalUnitVatAed.toFixed(2));
+        $('#totalVatAed').val(totalVatAed.toFixed(2));
+        $('#totalUnitVatInNkf').val(totalUnitVatInNkf.toFixed(2));
+        $('#totalVatInNkf').val(totalVatInNkf.toFixed(2));
+        $('#totalUnitPrice').val(totalUnitPrice.toFixed(2));
+        $('#totalNkfPrice').val(totalNkfPrice.toFixed(2));
+        $('#totalWithoutVat').val(totalWithoutVat.toFixed(2));
+    }
+    function partTemplateResult(data) {
+        if (!data.id) return data.text;
+        var partName = data.name;
+        var partCode = data.code;
+        var substitutePart = data.substitute;
+    
+        var displayText = data.text;
+        if (partName) displayText += ' - ' + partName;
+        if (partCode) displayText += ' (Code: ' + partCode + ')';
+        if (substitutePart) displayText += ' [Sub: ' + substitutePart + ']';
+    
+        return displayText;
+    }
+    function partTemplateSelection(data) {        
+        if (!data.id) return data.text;
+        var displayText = data.text;
+        return displayText;    
+    }
+    function addRow() {
+        const newRow = `
+            <tr>
+                <td style="min-width: 250px;">
+                 <select class="form-select part-no-select" style="width: 100%;" required>
+                <option value="">Select Part No</option>
+            </select>
+        </td>
+                <td><input type="text" class="form-control description" style="min-width: 150px; max-width: 250px;" readonly></td>
+                <td><input type="number" class="form-control quantity" min="1" required></td>
+                <td><input type="number" class="form-control weight" step="0.01" required></td>
+                <td><input type="number" class="form-control unit-aed-price" step="0.01" required></td>
+                <td><input type="number" class="form-control total-aed-price" readonly></td>
+                <td><input type="number" class="form-control unit-in-nkf" readonly></td>
+                <td><input type="number" class="form-control total-in-nkf" readonly></td>
+                <td><input type="number" class="form-control unit-weight-price" readonly></td>
+                <td><input type="number" class="form-control total-weight-price" readonly></td>
+                <td><input type="number" class="form-control unit-vat-aed" step="0.01" readonly></td>
+                <td><input type="number" class="form-control total-vat-aed" readonly></td>
+                <td><input type="number" class="form-control unit-vat-in-nkf" readonly></td>
+                <td><input type="number" class="form-control total-vat-in-nkf" readonly></td>
+                <td><input type="number" class="form-control total-unit-price" readonly></td>
+                <td><input type="number" class="form-control total-nkf-price" readonly></td>
+                <td><input type="number" class="form-control total-without-vat" readonly></td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm delete-row">Delete</button>
+                </td>
+            </tr>
+        `;
+        $('#bulkTable tbody').append(newRow);
+        const $select = $('#bulkTable tbody tr:last .part-no-select');
+        $select.select2({
+            width: '100%',
+            ajax: {
+        url: '/api/parts/search',
+        dataType: 'json',
+        delay: 250,
+        data: function(params) {
+            return { q: params.term };
+        },
+        processResults: function(data) {
+            return {
+                results: data.results.map(function(part) {
+                    return {
+                        id: part.id,
+                        text: part.part_number,
+                        name: part.name,
+                        code: part.code,
+                        substitute: part.substitute_part_number
+                    };
+                })
+            };
+        },
+        cache: true
+    },
+    templateResult: partTemplateResult,
+    templateSelection: partTemplateSelection,
+    minimumInputLength: 1
+});
+    }
+    $(document).on('change', '.part-no-select', function(e) {
+        var data = $(this).select2('data');
+        var partName = data && data[0] && data[0].name ? data[0].name : '';
+        $(this).closest('tr').find('.description').val(partName);
+    });
+    $('#addRowBtn').click(addRow);
+    $(document).on('click', '.delete-row', function() {
+        $(this).closest('tr').remove();
+        updateTotals();
+    });
+    $(document).on('input', '.quantity, .weight, .unit-aed-price', function() {
+        calculateRowValues($(this).closest('tr'));
+    });
+    $('#aedToUsd, #usdToNkf, #weightPrice').on('input', function() {
+        $('#bulkTable tbody tr').each(function() {
+            calculateRowValues($(this));
+        });
+    });
+    $('#bulkCreditForm').on('submit', function(e) {
+        e.preventDefault();
+        const rows = [];
+        $('#bulkTable tbody tr').each(function() {
+            const row = $(this);
+            const partId = row.find('.part-no-select').val();
+            if (!partId) return;
+            rows.push({
+                part_id: partId,
+                quantity: parseFloat(row.find('.quantity').val()) || 0,
+                weight: parseFloat(row.find('.weight').val()) || 0,
+                unit_aed_price: parseFloat(row.find('.unit-aed-price').val()) || 0,
+                // Add other fields as needed for backend
+            });
+        });
+        if (rows.length === 0) {
+            alert('Please add at least one item to the credit purchase');
+            return;
+        }
+        const data = {
+            warehouse_id: $('#warehouseSelect').val(),
+            supplier_id: $('#supplierSelect').val(),
+            due_days: $('#dueDays').val(),
+            items: rows
+        };
+        $.ajax({
+            url: "{{ url_for('credits.bulk_credit') }}",
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    window.location.href = "{{ url_for('credits.list_credits') }}";
+                } else {
+                    alert(response.message || 'Error processing bulk credit purchase');
+                }
+            },
+            error: function(xhr) {
+                alert('Error processing bulk credit purchase: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    });
+
+    // Export to Excel
+    $('#exportExcelBtn').click(function() {
+        var wb = XLSX.utils.book_new();
+        var ws_data = [];
+        var today = new Date();
+        var dateStr = today.toISOString().slice(0, 10);
+        var supplier = $('#supplierSelect option:selected').text() || '';
+        var aedToUsd = $('#aedToUsd').val() || '';
+        var usdToNkf = $('#usdToNkf').val() || '';
+        var weightPrice = $('#weightPrice').val() || '';
+        var dueDays = $('#dueDays').val() || '';
+
+        ws_data.push(['Bulk Credit Purchases']);
+        ws_data.push(['Supplier: ' + supplier]);
+        ws_data.push(['AED to USD: ' + aedToUsd, 'USD to NKF: ' + usdToNkf, 'Weight Price: ' + weightPrice, 'Due in (days): ' + dueDays]);
+        ws_data.push(['Date: ' + dateStr]);
+        ws_data.push([]); // Empty row for spacing
+
+        var headers = [];
+        $('#bulkTable thead th').each(function() {
+            if ($(this).text().trim() !== 'Actions') {
+                headers.push($(this).text().trim());
+            }
+        });
+        ws_data.push(headers);
+        // Get row data (skip Actions column)
+        $('#bulkTable tbody tr').each(function() {
+            var row = [];
+            $(this).find('td').each(function(i) {
+                // Skip Actions column (last td)
+                if (i === $(this).parent().children().length - 1) return;
+                var input = $(this).find('select, input');
+                if (input.length > 0) {
+                    if (input.is('select')) {
+                        row.push(input.find('option:selected').text() || '');
+                    } else {
+                        row.push(input.val() || '');
+                    }
+                } else {
+                    row.push($(this).text().trim());
+                }
+            });
+            if (row.some(cell => cell !== '')) ws_data.push(row);
+        });
+        // Add totals row (move left)
+        var totalsRow = Array(headers.length).fill('');
+        totalsRow[headers.length - 17] = 'Over All Total:';
+        totalsRow[headers.length - 15] = $('#totalQuantity').val();
+        totalsRow[headers.length - 14] = $('#totalWeight').val();
+        totalsRow[headers.length - 13] = $('#totalUnitAedPrice').val();
+        totalsRow[headers.length - 12] = $('#totalAedPrice').val();
+        totalsRow[headers.length - 11] = $('#totalUnitInNkf').val();
+        totalsRow[headers.length - 10] = $('#totalInNkf').val();
+        totalsRow[headers.length - 9] = $('#totalUnitWeightPrice').val();
+        totalsRow[headers.length - 8] = $('#totalWeightPrice').val();
+        totalsRow[headers.length - 7] = $('#totalUnitVatAed').val();
+        totalsRow[headers.length - 6] = $('#totalVatAed').val();
+        totalsRow[headers.length - 5] = $('#totalUnitVatInNkf').val();
+        totalsRow[headers.length - 4] = $('#totalVatInNkf').val();
+        totalsRow[headers.length - 3] = $('#totalUnitPrice').val();
+        totalsRow[headers.length - 2] = $('#totalNkfPrice').val();
+        totalsRow[headers.length - 1] = $('#totalWithoutVat').val();
+        ws_data.push(totalsRow);
+        var ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Bulk Credit Purchases');
+        XLSX.writeFile(wb, 'bulk_credit_purchases.xlsx');
+    });
+
+    // Export to PDF
+    $('#exportPdfBtn').click(function() {
+        var { jsPDF } = window.jspdf;
+        var doc = new jsPDF('l', 'pt', 'a4');
+        var columns = [];
+        $('#bulkTable thead th').each(function(i) {
+            if ($(this).text().trim() !== 'Actions') {
+                columns.push($(this).text().trim());
+            }
+        });
+        var rows = [];
+        $('#bulkTable tbody tr').each(function() {
+            var row = [];
+            $(this).find('select, input').each(function(i) {
+                if ($(this).is('select')) {
+                    row.push($(this).find('option:selected').text() || '');
+                } else {
+                    row.push($(this).val() || '');
+                }
+            });
+            if (row.some(cell => cell !== '')) rows.push(row);
+        });
+        // Add totals row
+        var totalsRow = Array(columns.length).fill('');
+        totalsRow[columns.length - 17] = 'Over All Total:';
+        totalsRow[columns.length - 15] = $('#totalQuantity').val();
+        totalsRow[columns.length - 14] = $('#totalWeight').val();
+        totalsRow[columns.length - 13] = $('#totalUnitAedPrice').val();
+        totalsRow[columns.length - 12] = $('#totalAedPrice').val();
+        totalsRow[columns.length - 11] = $('#totalUnitInNkf').val();
+        totalsRow[columns.length - 10] = $('#totalInNkf').val();
+        totalsRow[columns.length - 9] = $('#totalUnitWeightPrice').val();
+        totalsRow[columns.length - 8] = $('#totalWeightPrice').val();
+        totalsRow[columns.length - 7] = $('#totalUnitVatAed').val();
+        totalsRow[columns.length - 6] = $('#totalVatAed').val();
+        totalsRow[columns.length - 5] = $('#totalUnitVatInNkf').val();
+        totalsRow[columns.length - 4] = $('#totalVatInNkf').val();
+        totalsRow[columns.length - 3] = $('#totalUnitPrice').val();
+        totalsRow[columns.length - 2] = $('#totalNkfPrice').val();
+        totalsRow[columns.length - 1] = $('#totalWithoutVat').val();
+        rows.push(totalsRow);
+        // Add today's date and due date at the top right
+        var title = 'Bulk Credit Purchases';
+        var supplier = $('#supplierSelect option:selected').text() || '';
+        var aedToUsd = $('#aedToUsd').val() || '';
+        var usdToNkf = $('#usdToNkf').val() || '';
+        var weightPrice = $('#weightPrice').val() || '';
+        var dueDays = parseInt($('#dueDays').val() || '0', 10);
+        var today = new Date();
+        var dateStr = today.toISOString().slice(0, 10);
+        var dueDate = new Date(today.getTime() + dueDays * 24 * 60 * 60 * 1000);
+        var dueDateStr = dueDate.toISOString().slice(0, 10);
+
+        doc.setFontSize(18);
+        doc.text(title, 40, 30);
+        doc.setFontSize(12);
+        doc.text('Supplier: ' + supplier, 40, 50);
+        doc.text('AED to USD: ' + aedToUsd, 40, 70);
+        doc.text('USD to NKF: ' + usdToNkf, 200, 70);
+        doc.text('Weight Price: ' + weightPrice, 360, 70);
+        doc.text('Due in (days): ' + dueDays, 520, 70);
+        doc.text('Date: ' + dateStr, doc.internal.pageSize.getWidth() - 220, 30);
+        doc.text('Due Date: ' + dueDateStr, doc.internal.pageSize.getWidth() - 220, 50);
+
+        doc.autoTable({
+            head: [columns],
+            body: rows,
+            startY: 90,
+            styles: {
+                fontSize: 6,
+                cellPadding: 1.5,
+                lineWidth: 0.2,
+                lineColor: [0,0,0],
+                textColor: [0,0,0],
+                cellWidth: 'auto',
+                overflow: 'linebreak',
+            },
+            headStyles: {
+                fillColor: [44, 62, 80],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 7,
+                halign: 'center',
+                valign: 'middle',
+                cellPadding: 1.5,
+                lineWidth: 0.2,
+                lineColor: [0,0,0],
+            },
+            bodyStyles: {
+                fontSize: 6,
+                halign: 'center',
+                valign: 'middle',
+                cellPadding: 1.5,
+                lineWidth: 0.2,
+                lineColor: [0,0,0],
+                textColor: [0,0,0],
+            },
+            margin: { left: 10, right: 10 },
+            tableWidth: 'auto',
+            theme: 'grid',
+            columnStyles: Array(columns.length).fill({cellWidth: 'auto'}),
+        });
+        doc.save('bulk_credit_purchases.pdf');
+    });
+});
+</script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %} 

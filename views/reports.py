@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, send_file, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
-from models import db, Part, Transaction, Loan, CreditPurchase, Purchase, FinancialTransaction, BinCard, Transfer, Location, User, Warehouse, Disposal
+from models import db, Part, Transaction, Loan, CreditPurchase, Purchase, FinancialTransaction, BinCard, Transfer, Location, User, Warehouse, Disposal, LoanPayment
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from functools import wraps
@@ -144,6 +144,9 @@ def sales():
     # Base query - exclude cancelled sales
     query = Transaction.query.filter(Transaction.type == 'sale').filter(
         ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+    ).filter(
+        (Transaction.loan_payment_id == None) |
+        (~db.session.query(LoanPayment).filter(LoanPayment.id == Transaction.loan_payment_id, LoanPayment.voided == True).exists())
     )
     
     # Apply date filters using func.date() to compare only the date part
@@ -828,6 +831,9 @@ def export_csv(report_type, start_datetime, end_datetime):
         # Create base query with type filter - exclude cancelled sales
         query = Transaction.query.filter_by(type='sale').filter(
             ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+        ).filter(
+            (Transaction.loan_payment_id == None) |
+            (~db.session.query(LoanPayment).filter(LoanPayment.id == Transaction.loan_payment_id, LoanPayment.voided == True).exists())
         )
         
         # Apply date filters using func.date() to compare only the date part
@@ -972,6 +978,9 @@ def export_pdf(report_type, start_datetime, end_datetime):
         # Create base query with type filter - exclude cancelled sales
         query = Transaction.query.filter_by(type='sale').filter(
             ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+        ).filter(
+            (Transaction.loan_payment_id == None) |
+            (~db.session.query(LoanPayment).filter(LoanPayment.id == Transaction.loan_payment_id, LoanPayment.voided == True).exists())
         )
         
         # Apply date filters using func.date() to compare only the date part

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
-from models import db, Part, Transaction, Customer, User, BinCard, FinancialTransaction, ExchangeRate
+from models import db, Part, Transaction, Customer, User, BinCard, FinancialTransaction, ExchangeRate, LoanPayment
 from datetime import datetime
 from utils.template_filters import format_price_nkf
 from io import BytesIO
@@ -14,14 +14,20 @@ from utils.date_utils import (
     parse_date_range, format_date, format_datetime,
     get_start_of_day, get_end_of_day, get_date_range
 )
+from sqlalchemy.orm import joinedload
 
 sales = Blueprint('sales', __name__)
 
 @sales.route('/sales')
 @login_required
 def list_sales():
-    sales = Transaction.query.filter_by(type='sale').filter(
-        ((Transaction.status == None) | (Transaction.status != 'cancelled')) & (Transaction.voided == False)
+    # Exclude sales linked to voided loan payments using an outer join
+    sales = db.session.query(Transaction).outerjoin(LoanPayment, Transaction.loan_payment_id == LoanPayment.id)
+    sales = sales.filter(
+        Transaction.type == 'sale',
+        ((Transaction.status == None) | (Transaction.status != 'cancelled')),
+        Transaction.voided == False,
+        ((Transaction.loan_payment_id == None) | (LoanPayment.voided == False))
     ).order_by(Transaction.date.desc()).all()
     # Get unique users who have made sales
     users = User.query.join(Transaction).filter(Transaction.type == 'sale').distinct().all()

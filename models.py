@@ -182,7 +182,13 @@ class Loan(db.Model):
     returned_date = db.Column(db.DateTime)
     status = db.Column(db.String(20))  # active, returned, overdue
     
-    # Add relationships with explicit foreign keys and primaryjoin
+    # Voiding fields
+    voided = db.Column(db.Boolean, default=False)
+    void_reason = db.Column(db.Text)
+    voided_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    voided_at = db.Column(db.DateTime)
+
+    # Relationships
     part = db.relationship('Part', 
                          backref=db.backref('loans', lazy=True),
                          foreign_keys=[part_id],
@@ -192,17 +198,18 @@ class Loan(db.Model):
                              backref=db.backref('loans', lazy=True),
                              foreign_keys=[customer_id],
                              primaryjoin='Loan.customer_id == Customer.id')
+    voided_by = db.relationship('User', backref='voided_loans', foreign_keys=[voided_by_id])
 
     @property
     def is_fully_paid(self):
         total_amount = self.quantity * (self.selling_price or 0)
-        total_paid = sum(payment.amount for payment in self.payments)
+        total_paid = sum(payment.amount for payment in self.payments if not payment.voided)
         return total_paid >= total_amount and total_amount > 0
 
     @property
     def outstanding_amount(self):
         total_amount = self.quantity * (self.selling_price or 0)
-        total_paid = sum(payment.amount for payment in self.payments)
+        total_paid = sum(payment.amount for payment in self.payments if not payment.voided)
         return max(total_amount - total_paid, 0)
 
 class CreditPurchase(db.Model):
@@ -251,7 +258,10 @@ class Transaction(db.Model):
     voided = db.Column(db.Boolean, default=False)
     payment_method = db.Column(db.String(20))  # cash, cheque, transfer
     notes = db.Column(db.Text)
-    
+    # New field for linking to loan payments
+    loan_payment_id = db.Column(db.Integer, db.ForeignKey('loan_payment.id'), nullable=True)
+    loan_payment = db.relationship('LoanPayment', backref='transactions', foreign_keys=[loan_payment_id])
+
     # Relationships with explicit foreign keys and primaryjoin
     part = db.relationship('Part', 
                          backref=db.backref('transactions', lazy=True),
@@ -262,7 +272,6 @@ class Transaction(db.Model):
                          backref=db.backref('transactions', lazy=True),
                          foreign_keys=[user_id],
                          primaryjoin='Transaction.user_id == User.id')
-    
 
 class Transfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -516,7 +525,14 @@ class LoanPayment(db.Model):
     method = db.Column(db.String(50))  # e.g., cash, cheque, transfer
     notes = db.Column(db.String(255))
 
+    # Voiding fields
+    voided = db.Column(db.Boolean, default=False)
+    voided_at = db.Column(db.DateTime, nullable=True)
+    voided_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    void_reason = db.Column(db.Text, nullable=True)
+
     loan = db.relationship('Loan', backref=db.backref('payments', lazy=True))
+    voided_by = db.relationship('User', backref='voided_loan_payments', foreign_keys=[voided_by_id])
 
 # # Add SQLAlchemy event listeners
 # @event.listens_for(Purchase, 'after_insert')

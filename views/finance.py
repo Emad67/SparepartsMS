@@ -783,6 +783,7 @@ def void_transaction(transaction_id):
         current_app.logger.info(f"Processing void request for transaction ID: {transaction_id}")
         current_app.logger.info(f"Transaction type: {transaction.type}, category: {transaction.category}")
         current_app.logger.info(f"Transaction category: '{transaction.category}'")
+        current_app.logger.info(f"[DEBUG] Voiding transaction: id={transaction_id}, category={transaction.category}, reference_id={transaction.reference_id}")
         
         # Validate transaction can be voided
         if transaction.voided:
@@ -830,6 +831,8 @@ def void_transaction(transaction_id):
                     current_app.logger.error(f"No sale found with ID {transaction.reference_id}")
                     return jsonify({'error': 'Referenced sale not found'}), 404
                     
+                current_app.logger.info(f"Found sale {sale.id} with status: {sale.status}, voided: {sale.voided}")
+                
                 if sale.status == 'cancelled':
                     current_app.logger.warning(f"Sale {sale.id} is already cancelled")
                     return jsonify({'error': 'Sale is already cancelled'}), 400
@@ -837,6 +840,8 @@ def void_transaction(transaction_id):
                 # Update sale status
                 sale.status = 'cancelled'
                 sale.voided = True  # Ensure voided column is set
+                
+                current_app.logger.info(f"Updated sale {sale.id} - status: {sale.status}, voided: {sale.voided}")
                 
                 # Get the original bincard entry to find warehouse information
                 original_bincard = BinCard.query.filter_by(
@@ -900,6 +905,8 @@ def void_transaction(transaction_id):
                 
                 # Update part cost price
                 part.calculate_cost_price()
+                
+                current_app.logger.info(f"Successfully processed void for sale {sale.id}")
             
             # Handle purchase-related transactions
             elif transaction.category == 'purchase':
@@ -1007,6 +1014,38 @@ def void_transaction(transaction_id):
                     warehouse_id=credit.warehouse_id
                 )
                 db.session.add(bincard)
+            
+            # Handle loan payment-related transactions
+            elif transaction.category.strip().lower() == 'loan payment':
+                from models import LoanPayment
+                loan_payment = LoanPayment.query.filter_by(id=transaction.reference_id).first()
+                current_app.logger.info(f"[DEBUG] Looked up LoanPayment: id={transaction.reference_id}, found={bool(loan_payment)}")
+                if not loan_payment:
+                    current_app.logger.error(f"No loan payment found with ID {transaction.reference_id}")
+                    return jsonify({'error': 'Referenced loan payment not found'}), 404
+
+                if loan_payment.voided:
+                    current_app.logger.warning(f"Loan payment {loan_payment.id} is already voided")
+                    return jsonify({'error': 'Loan payment is already voided'}), 400
+
+                loan_payment.voided = True
+                loan_payment.voided_at = datetime.now(pytz.timezone('Africa/Nairobi'))
+                loan_payment.voided_by_id = current_user.id
+                loan_payment.void_reason = data['reason']
+                db.session.add(loan_payment)
+                # Add a negative loan payment entry to represent the void
+                void_loan_payment = LoanPayment(
+                    loan_id=loan_payment.loan_id,
+                    amount=-loan_payment.amount,
+                    date=datetime.now(pytz.timezone('Africa/Nairobi')),
+                    method=loan_payment.method,
+                    notes=f"Voiding original payment ID {loan_payment.id}: {data['reason']}",
+                    voided=True,
+                    voided_at=datetime.now(pytz.timezone('Africa/Nairobi')),
+                    voided_by_id=current_user.id,
+                    void_reason=f"Void of payment ID {loan_payment.id}: {data['reason']}"
+                )
+                db.session.add(void_loan_payment)
         
         # Commit the nested transaction
         db.session.commit()

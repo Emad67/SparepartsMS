@@ -39,7 +39,10 @@
     
     <div class="d-flex justify-content-between mb-3">
         <h3>All Credit Purchases</h3>
-        <a href="{{ url_for('credits.add_credit') }}" class="btn btn-primary">New Credit Purchase</a>
+        <div>
+            <a href="{{ url_for('credits.add_credit') }}" class="btn btn-primary me-2">New Credit Purchase</a>
+            <a href="{{ url_for('credits.bulk_credit') }}" class="btn btn-secondary">Bulk Credit Purchase Entry</a>
+        </div>
     </div>
     
     <table class="table table-striped">

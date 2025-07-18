@@ -7,6 +7,7 @@ from utils.date_utils import parse_date_range, format_date
 from utils.template_filters import format_price_nkf
 from utils.currency import get_usd_amount
 import pytz
+import re
 
 nairobi_tz = pytz.timezone('Africa/Nairobi')
 now_asmara = datetime.now(nairobi_tz)
@@ -155,7 +156,6 @@ def return_loan(id):
     
     if bincard:
         # Extract warehouse name from the notes
-        import re
         warehouse_match = re.search(r'from (.+)$', bincard.notes)
         if warehouse_match:
             warehouse_name = warehouse_match.group(1)
@@ -333,6 +333,7 @@ def add_loan_payment(loan_id):
     payment = LoanPayment(loan_id=loan_id, amount=amount, method=method, notes=notes)
     db.session.add(payment)
     db.session.flush()  # So payment.id is available if needed
+    print(f"[DEBUG] Created LoanPayment: id={payment.id}, loan_id={loan_id}, amount={amount}")
 
     loan = Loan.query.get_or_404(loan_id)
 
@@ -350,10 +351,12 @@ def add_loan_payment(loan_id):
         date=datetime.now(pytz.timezone('Africa/Nairobi')),
         user_id=current_user.id,
         payment_method=method,
-        notes=notes
+        notes=notes,
+        loan_payment_id=payment.id  # Link to the LoanPayment
     )
     db.session.add(sale)
     db.session.flush()
+    print(f"[DEBUG] Created Transaction: id={sale.id}, loan_payment_id={sale.loan_payment_id}")
 
     # Create a FinancialTransaction for this payment
     financial_transaction = FinancialTransaction(
@@ -362,11 +365,12 @@ def add_loan_payment(loan_id):
         amount=amount,
         exchange_rate=ExchangeRate.get_rate_for_date(),
         description=f'Partial payment for Loan #{loan.id}: {amount} NKF, method: {method}',
-        reference_id=str(sale.id),
+        reference_id=str(payment.id),  # Use LoanPayment id, not sale.id
         user_id=current_user.id,
         date=datetime.now(pytz.timezone('Africa/Nairobi'))
     )
     db.session.add(financial_transaction)
+    print(f"[DEBUG] Created FinancialTransaction: id={{financial_transaction.id}}, reference_id={financial_transaction.reference_id}, category={financial_transaction.category}")
 
     db.session.commit()
     flash('Payment recorded successfully!', 'success')
@@ -385,3 +389,93 @@ def loan_status(loan_id):
                          total_paid=total_paid,
                          total_amount=total_amount,
                          outstanding_amount=outstanding_amount)
+
+@loans.route('/loans/<int:id>/void', methods=['POST'])
+@login_required
+def void_loan(id):
+    loan = Loan.query.get_or_404(id)
+    if loan.voided:
+        return jsonify({'error': 'Loan is already voided'}), 400
+    if loan.status not in ['active', 'overdue']:
+        return jsonify({'error': 'Only active or overdue loans can be voided'}), 400
+
+    data = request.get_json() or {}
+    reason = data.get('reason', '').strip()
+    if not reason:
+        return jsonify({'error': 'Reason for voiding is required'}), 400
+
+    try:
+        # Mark as voided
+        loan.voided = True
+        loan.void_reason = reason
+        loan.voided_by_id = current_user.id
+        loan.voided_at = datetime.now(pytz.timezone('Africa/Nairobi'))
+
+        # Restore part stock
+        part = Part.query.get(loan.part_id)
+        part.stock_level += loan.quantity
+
+        # Find warehouse from BinCard entry
+        bincard = BinCard.query.filter_by(reference_type='loan', reference_id=loan.id).first()
+        warehouse = None
+        if bincard:
+            warehouse_match = re.search(r'from (.+)$', bincard.notes)
+            if warehouse_match:
+                warehouse_name = warehouse_match.group(1)
+                warehouse = Warehouse.query.filter_by(name=warehouse_name).first()
+        if not warehouse:
+            return jsonify({'error': 'Could not determine warehouse for stock update'}), 400
+
+        # Restore warehouse stock
+        warehouse_stock = WarehouseStock.query.filter_by(warehouse_id=warehouse.id, part_id=loan.part_id).first()
+        if warehouse_stock:
+            warehouse_stock.quantity += loan.quantity
+        else:
+            warehouse_stock = WarehouseStock(warehouse_id=warehouse.id, part_id=loan.part_id, quantity=loan.quantity)
+            db.session.add(warehouse_stock)
+
+        # Create BinCard entry for reversal
+        bincard_void = BinCard(
+            part_id=loan.part_id,
+            transaction_type='in',
+            quantity=loan.quantity,
+            reference_type='LOAN_VOID',
+            reference_id=loan.id,
+            balance=part.stock_level,
+            user_id=current_user.id,
+            notes=f'Loan voided: {reason}',
+            warehouse_id=warehouse.id
+        )
+        db.session.add(bincard_void)
+
+        # Reverse payments
+        for payment in loan.payments:
+            # Create negative LoanPayment
+            reversal = LoanPayment(
+                loan_id=loan.id,
+                amount=-payment.amount,
+                method=payment.method,
+                notes=f'Reversal of payment ID {payment.id} due to loan void',
+                date=datetime.now(pytz.timezone('Africa/Nairobi'))
+            )
+            db.session.add(reversal)
+            # Create negative FinancialTransaction if exists
+            fin_txn = FinancialTransaction.query.filter_by(reference_id=str(payment.id), category='Loan Payment').first()
+            if fin_txn:
+                reversal_txn = FinancialTransaction(
+                    type='void',
+                    category='Loan Payment Void',
+                    amount=-fin_txn.amount,
+                    description=f'Reversal of payment ID {payment.id} for voided loan {loan.id}',
+                    reference_id=str(payment.id),
+                    user_id=current_user.id,
+                    date=datetime.now(pytz.timezone('Africa/Nairobi')),
+                    exchange_rate=fin_txn.exchange_rate
+                )
+                db.session.add(reversal_txn)
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Loan voided and all related records updated'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error voiding loan: {str(e)}'}), 500
