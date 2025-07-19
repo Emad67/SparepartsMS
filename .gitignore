@@ -25,9 +25,7 @@ insert_sample_data.py
 license_generator.py
 populate_dummy_data.py
 
-
 # Flask
-
 .webassets-cache
 *.db
 *.sqlite3
@@ -76,5 +74,36 @@ coverage.xml
 
 # Migrations (keep the migrations directory but ignore compiled files)
 migrations/__pycache__/
-migrations/versions/__pycache__/ 
+migrations/versions/__pycache__/
 docs/Screenshot 2025-07-02 211509.png
+
+# Ignore Python virtual environments
+sparepart/
+venv/
+.env/
+
+# Ignore database files
+*.db
+instance/spms.db
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore build and distribution directories
+build/
+dist/
+installer_package/
+*.spec
+*.exe
+
+# Ignore uploads and other runtime-generated files
+instance/static/uploads/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore old/unused requirements file if not needed
+requirements1.txt

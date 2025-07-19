@@ -233,3 +233,52 @@ def mark_paid(id):
         current_app.logger.error(f"Error in mark_paid: {str(e)}")
         flash(f'Error marking credit as paid: {str(e)}', 'error')
         return redirect(url_for('credits.list_credits'))
+
+@credits.route('/credits/<int:id>/status')
+@login_required
+@role_required('admin', 'manager')
+def credit_status(id):
+    credit = CreditPurchase.query.options(
+        joinedload(CreditPurchase.part),
+        joinedload(CreditPurchase.supplier),
+        joinedload(CreditPurchase.warehouse)
+    ).get_or_404(id)
+    # Get all payments (FinancialTransaction) for this credit, including voided
+    payments = FinancialTransaction.query.filter_by(
+        category='Credit Payment', reference_id=str(credit.id)
+    ).order_by(FinancialTransaction.date.desc()).all()
+    total_paid = sum(p.amount for p in payments if not p.voided)
+    total_amount = credit.price * credit.quantity
+    outstanding = total_amount - total_paid
+    return render_template('credits/status.html', credit=credit, payments=payments, total_paid=total_paid, total_amount=total_amount, outstanding=outstanding)
+
+@credits.route('/credits/<int:id>/add-payment', methods=['POST'])
+@login_required
+@role_required('admin', 'manager')
+def add_credit_payment(id):
+    credit = CreditPurchase.query.get_or_404(id)
+    amount = float(request.form['amount'])
+    method = request.form['method']
+    notes = request.form.get('notes', '')
+    payment = FinancialTransaction(
+        type='expense',
+        category='Credit Payment',
+        amount=amount,
+        description=f'Payment for credit purchase #{credit.id}: {amount} NKF, method: {method}',
+        reference_id=str(credit.id),
+        user_id=current_user.id,
+        date=datetime.now(pytz.timezone('Africa/Nairobi')),
+        exchange_rate=ExchangeRate.get_rate_for_date(),
+        voided=False
+    )
+    db.session.add(payment)
+    db.session.flush()
+    # If fully paid, update status
+    total_paid = sum(p.amount for p in FinancialTransaction.query.filter_by(category='Credit Payment', reference_id=str(credit.id)).all() if not p.voided)
+    total_amount = credit.price * credit.quantity
+    if total_paid >= total_amount:
+        credit.status = 'paid'
+        db.session.add(credit)
+    db.session.commit()
+    flash('Payment recorded successfully', 'success')
+    return redirect(url_for('credits.credit_status', id=credit.id))
