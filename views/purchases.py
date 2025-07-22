@@ -32,10 +32,13 @@ def bulk_purchase():
 
             warehouse_id = data.get('warehouse_id')
             supplier_id = data.get('supplier_id')
+            invoice_number = data.get('invoice_number')
             if not warehouse_id:
                 return jsonify({'success': False, 'message': 'Warehouse is required'}), 400
             if not supplier_id:
                 return jsonify({'success': False, 'message': 'Supplier is required'}), 400
+            if not invoice_number:
+                return jsonify({'success': False, 'message': 'Invoice number is required'}), 400
 
             # Start a transaction
             db.session.begin_nested()
@@ -51,11 +54,6 @@ def bulk_purchase():
                 if not all([part_id, quantity, unit_cost]):
                     raise ValueError('Missing required fields in item data')
 
-                # Generate unique invoice number
-                timestamp = datetime.now(pytz.timezone('Africa/Nairobi')).strftime("%Y%m%d%H%M%S")
-                random_suffix = ''.join([str(random.randint(0, 9)) for _ in range(4)])
-                invoice_number = f'BULK-{timestamp}-{random_suffix}'
-
                 # Create purchase entry
                 purchase = Purchase(
                     part_id=part_id,
@@ -65,7 +63,7 @@ def bulk_purchase():
                     unit_cost=unit_cost,
                     total_cost=total_cost,
                     status='received',  # Mark as received immediately
-                    invoice_number=invoice_number,
+                    invoice_number=invoice_number,  # <-- use the user-provided value
                     user_id=current_user.id,
                     unit_aed_price=unit_aed_price
                 )

@@ -1,6 +1,7 @@
-from app import create_app
-
-app = create_app()
+import webbrowser
+from threading import Timer
+from app import app
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    Timer(1, lambda: webbrowser.open_new("http://127.0.0.1:5000/")).start()
+    app.run()

@@ -73,6 +73,10 @@
                     <label for="weightPrice" class="form-label">Weight Price</label>
                     <input type="number" class="form-control" id="weightPrice" name="weight_price" step="0.01" value="350" required>
                 </div>
+                <div class="col-md-2">
+                    <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                    <input type="text" class="form-control" id="invoiceNumber" name="invoice_number" required>
+                </div>
                 <div class="col-md-3 col-12 ms-auto text-end">
                     <label for="warehouseSelect" class="form-label">Warehouse</label>
                     <select class="form-select" id="warehouseSelect" name="warehouse_id" required>
@@ -441,6 +445,7 @@ $(document).ready(function() {
         const data = {
             warehouse_id: $('#warehouseSelect').val(),
             supplier_id: $('#supplierSelect').val(),
+            invoice_number: $('#invoiceNumber').val(),
             items: rows
         };
 
@@ -482,12 +487,15 @@ $(document).ready(function() {
         var today = new Date();
         var dateStr = today.toISOString().slice(0, 10);
         var supplier = $('#supplierSelect option:selected').text() || '';
+        var invoiceNumber = $('#invoiceNumber').val() || '';
         var aedToUsd = $('#aedToUsd').val() || '';
         var usdToNkf = $('#usdToNkf').val() || '';
         var weightPrice = $('#weightPrice').val() || '';
+        
 
         ws_data.push(['Bulk Purchases']);
         ws_data.push(['Supplier: ' + supplier]);
+        ws_data.push(['Invoice Number: ' + invoiceNumber]);
         ws_data.push(['AED to USD: ' + aedToUsd, 'USD to NKF: ' + usdToNkf, 'Weight Price: ' + weightPrice]);
         ws_data.push(['Date: ' + dateStr]);
         ws_data.push([]); // Empty row for spacing
@@ -539,11 +547,20 @@ $(document).ready(function() {
         ws_data.push(totalsRow);
         var ws = XLSX.utils.aoa_to_sheet(ws_data);
         XLSX.utils.book_append_sheet(wb, ws, 'Bulk Purchases');
-        XLSX.writeFile(wb, 'bulk_purchases.xlsx');
+        var fileDate = dateStr.replace(/-/g, '');
+        var safeSupplier = supplier.replace(/\\s+/g, '_');
+        var safeInvoice = invoiceNumber.replace(/\\s+/g, '_');
+        var random2 = Math.floor(10 + Math.random() * 90); // random 2-digit number
+        var excelFileName = `bulk_purchases_${fileDate}_${safeSupplier}_${safeInvoice}_${random2}.xlsx`;
+        XLSX.writeFile(wb, excelFileName);
     });
 
     // Export to PDF
     $('#exportPdfBtn').click(function() {
+        var supplier = $('#supplierSelect option:selected').text() || '';
+        var invoiceNumber = $('#invoiceNumber').val() || '';
+        var today = new Date();
+        var dateStr = today.toISOString().slice(0, 10);
         var { jsPDF } = window.jspdf;
         var doc = new jsPDF('l', 'pt', 'a4');
         var columns = [];
@@ -585,8 +602,10 @@ $(document).ready(function() {
         totalsRow[columns.length - 1] = $('#totalWithoutVat').val();
         rows.push(totalsRow);
         // Add today's date at the top right (move a bit left)
-       var title = 'Bulk Purchases';
+
+        var title = 'Bulk Purchases';
         var supplier = $('#supplierSelect option:selected').text() || '';
+        var invoiceNumber = $('#invoiceNumber').val() || '';
         var aedToUsd = $('#aedToUsd').val() || '';
         var usdToNkf = $('#usdToNkf').val() || '';
         var weightPrice = $('#weightPrice').val() || '';
@@ -594,12 +613,17 @@ $(document).ready(function() {
         var dateStr = today.toISOString().slice(0, 10);
 
         doc.setFontSize(18);
-        doc.text(title, 40, 30);
+        // Center the title
+        var pageWidth = doc.internal.pageSize.getWidth();
+        var textWidth = doc.getTextWidth(title);
+        var x = (pageWidth - textWidth) / 2;
+        doc.text(title, x, 30);
         doc.setFontSize(12);
         doc.text('Supplier: ' + supplier, 40, 50);
-        doc.text('AED to USD: ' + aedToUsd, 40, 70);
-        doc.text('USD to NKF: ' + usdToNkf, 200, 70);
-        doc.text('Weight Price: ' + weightPrice, 360, 70);
+        doc.text('Invoice Number: ' + invoiceNumber, 40, 65);
+        doc.text('AED to USD: ' + aedToUsd, 40, 80);
+        doc.text('USD to NKF: ' + usdToNkf, 200, 80);
+        doc.text('Weight Price: ' + weightPrice, 360, 80);
         doc.text('Date: ' + dateStr, doc.internal.pageSize.getWidth() - 220, 30);
 
         doc.autoTable({
@@ -640,7 +664,12 @@ $(document).ready(function() {
             theme: 'grid',
             columnStyles: Array(columns.length).fill({cellWidth: 'auto'}),
         });
-        doc.save('bulk_purchases.pdf');
+        var fileDate = dateStr.replace(/-/g, '');
+        var safeSupplier = supplier.replace(/\\s+/g, '_');
+        var safeInvoice = invoiceNumber.replace(/\\s+/g, '_');
+        var random2 = Math.floor(10 + Math.random() * 90); // random 2-digit number
+        var pdfFileName = `bulk_purchases_${fileDate}_${safeSupplier}_${safeInvoice}_${random2}.pdf`;
+        doc.save(pdfFileName);
     });
 });
 </script>

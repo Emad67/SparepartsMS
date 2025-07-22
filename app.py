@@ -29,6 +29,8 @@ import sys
 from datetime import datetime
 from dotenv import load_dotenv
 from utils.template_filters import register_template_filters
+import webbrowser
+from threading import Timer
 
 # Load environment variables from .env file
 load_dotenv()
@@ -184,4 +186,5 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
+    Timer(1, lambda: webbrowser.open_new("http://127.0.0.1:5000/")).start()
     app.run(debug=True)

@@ -24,8 +24,6 @@ Source: "static\*"; DestDir: "{app}\static"; Flags: ignoreversion recursesubdirs
 Source: "templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs
 Source: "instance\*"; DestDir: "{app}\instance"; Flags: ignoreversion recursesubdirs
 Source: "sparepart\*"; DestDir: "{app}\sparepart"; Flags: ignoreversion recursesubdirs
-Source: "instance\spms.db"; DestDir: "{app}\instance"; Flags: ignoreversion
-; Add other files as needed
 
 [Icons]
 Name: "{autodesktop}\Spare Parts MS"; Filename: "{app}\SparePartsMS.exe"
